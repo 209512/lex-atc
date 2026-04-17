@@ -22,9 +22,9 @@ class HazelcastManager {
       const cfg = loadBackendConfig(process.env);
 
           this.initPromise = new Promise((resolve, reject) => {
-              if (cfg.nodeEnv !== 'production' && cfg.hazelcast.useLocal) {
+              if (cfg.hazelcast.useLocal || String(process.env.USE_LOCAL_HZ || '').toLowerCase() === 'true') {
                     if (process.env.NODE_ENV !== 'test') {
-                        logger.warn('⚠️ [HZ-FALLBACK] Using in-memory Hazelcast client for local development.');
+                        logger.warn('⚠️ [HZ-FALLBACK] Using in-memory Hazelcast client (USE_LOCAL_HZ=true).');
                     }
                     this.client = new FakeHazelcastClient();
                   this.cpSubsystem = this.client.getCPSubsystem();

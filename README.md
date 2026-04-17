@@ -29,25 +29,25 @@ You can record the following key scenarios to showcase the power of the lex-atc 
    - **Action:** Let the system run without intervention.
    - **Observation:** Agents naturally mine PoW hashes, pay entry fees (0.01 SOL), and acquire locks. The 3D radar shows drones actively seeking the central hub, and the terminal logs display AI processing events.
    - **Demo:**  
-     ![Peaceful Nominal State](assets/1_peaceful_nominal_state.gif)
+     <video src="assets/1_peaceful_nominal_state.webm" autoplay loop muted playsinline></video>
 
 2. **Tactical Command & Priority Bidding**
    - **Action:** Open the Agent List and click the **[Priority Star]** on an agent.
    - **Observation:** The selected agent visually highlights and bypasses the queue, taking immediate control of the lock based on its staked priority and bidding power.
    - **Demo:**  
-     ![Tactical Command Priority](assets/2_tactical_command_priority.gif)
+     <video src="assets/2_tactical_command_priority.webm" autoplay loop muted playsinline></video>
 
 3. **Smart Alerts & Automated Slashing**
    - **Action:** Select an agent and click **[Slash]** or **[Escalate]** from the tactical panel, submitting a dispute reason (e.g., "MALICIOUS_BEHAVIOR").
    - **Observation:** The dispute is submitted. The agent is slashed (funds deducted), forcibly terminated, and evicted from the central hub.
    - **Demo:**  
-     ![Escalation Slashing](assets/3_escalation_slashing.gif)
+     <video src="assets/3_escalation_slashing.webm" autoplay loop muted playsinline></video>
 
 4. **Global Governance & Emergency Override**
    - **Action:** Click the red **[Emergency Takeover]** button in the Operations panel or top-left corner.
    - **Observation:** The entire UI flashes red, the Lock Holder changes to `HUMAN-OPERATOR`, and all autonomous agents are forcibly evicted from the central hub.
    - **Demo:**  
-     ![Emergency Takeover](assets/4_emergency_takeover.gif)
+     <video src="assets/4_emergency_takeover.webm" autoplay loop muted playsinline></video>
 
 > **Note for Manual Demos**: Do **not** use `pnpm stress` to spawn agents for UI demonstrations. Instead, use the **Traffic** panel in the Control Tower (top right of the UI) to manually scale the number of active agents up or down.
 

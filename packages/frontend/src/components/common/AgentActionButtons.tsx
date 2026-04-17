@@ -54,8 +54,8 @@ export const AgentActionButtons = ({
         <div className={clsx("flex items-center gap-1", layout === 'compact' && "justify-between w-full mt-2")}>
             <Tooltip content="Escalate (Dispute/Slash)" position={tooltipPosition}>
                 <button 
-                    data-testid={`btn-slash-${agent.id}`}
-                    onClick={(e) => { e.stopPropagation(); openOperationsModal(agent.id, 'slash'); }} 
+                    data-testid={`btn-slash-${agent.uuid || agent.id}`}
+                    onClick={(e) => { e.stopPropagation(); openOperationsModal(agent.uuid || agent.id, 'slash'); }} 
                     className={getActionButtonClass(false, "bg-orange-500/10 text-orange-500 border border-orange-500/50", "hover:bg-orange-500/20 text-orange-500", false, showLabels)}
                 >
                     <Scale size={12} />
@@ -65,8 +65,8 @@ export const AgentActionButtons = ({
 
             <Tooltip content={isPriority ? "Revoke Priority" : "Grant Priority"} position={tooltipPosition}>
                 <button 
-                    data-testid={`btn-priority-${agent.id}`}
-                    onClick={(e) => { e.stopPropagation(); onTogglePriority(agent.id, !isPriority); }} 
+                    data-testid={`btn-priority-${agent.uuid || agent.id}`}
+                    onClick={(e) => { e.stopPropagation(); onTogglePriority(agent.uuid || agent.id, !isPriority); }} 
                     className={getActionButtonClass(isPriority, "bg-yellow-500/10 text-yellow-500 border border-yellow-500/50", "hover:bg-yellow-400/10", false, showLabels)}
                 >
                     <Star size={12} className={clsx(isPriority && "fill-current")} />
@@ -76,7 +76,7 @@ export const AgentActionButtons = ({
 
             <Tooltip content={isGlobalStopped ? "System Halted" : (canSeize ? "Force Lock Transfer" : "Cannot Seize")} position={tooltipPosition}>
                 <button 
-                    onClick={(e) => { e.stopPropagation(); onTransferLock(agent.id); }} 
+                    onClick={(e) => { e.stopPropagation(); onTransferLock(agent.uuid || agent.id); }} 
                     disabled={!canSeize} 
                     className={getActionButtonClass(canSeize, "bg-purple-500/10 text-purple-500 border border-purple-500/50", "hover:bg-purple-500/20", !canSeize, showLabels)}
                 >
@@ -87,7 +87,7 @@ export const AgentActionButtons = ({
 
             <Tooltip content={isGlobalStopped ? "System Halted" : (isPaused ? "Resume" : "Pause")} position={tooltipPosition}>
                 <button 
-                    onClick={(e) => { e.stopPropagation(); onTogglePause(agent.id, isPaused); }} 
+                    onClick={(e) => { e.stopPropagation(); onTogglePause(agent.uuid || agent.id, isPaused); }} 
                     disabled={isPauseDisabled}
                     className={getActionButtonClass(isPaused, "bg-zinc-700 text-zinc-100 border border-zinc-500", "hover:bg-zinc-600", isPauseDisabled, showLabels)}
                 >
@@ -98,7 +98,7 @@ export const AgentActionButtons = ({
 
             <Tooltip content="Terminate Agent" position={tooltipPosition}>
                 <button 
-                    onClick={(e) => { e.stopPropagation(); onTerminate(agent.id); }} 
+                    onClick={(e) => { e.stopPropagation(); onTerminate(agent.uuid || agent.id); }} 
                     className={getActionButtonClass(false, "", "hover:bg-red-500/20 text-red-500", false, showLabels)}
                 >
                     <Trash2 size={12} />

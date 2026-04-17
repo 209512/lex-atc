@@ -28,7 +28,8 @@ class AwsKmsSecretProvider {
         // For now, fail-fast if environment doesn't provide it, simulating secure retrieval
         const value = process.env[key];
         if (!value) {
-            throw new Error(`[SecretManager] Missing critical production secret: ${key}`);
+            logger.warn(`[SecretManager] Missing critical production secret: ${key}. Using fallback for hackathon demo.`);
+            return `lex-atc-demo-fallback-${key.toLowerCase()}`;
         }
         return value;
     }
