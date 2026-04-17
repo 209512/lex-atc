@@ -21,7 +21,7 @@ export const L4StatusSystemPage = () => {
               Status System
             </div>
             <div className={clsx('mt-1 text-[12px] font-mono opacity-70 max-w-[420px]', isDark ? 'text-gray-400' : 'text-slate-600')}>
-              {/* 상태 코드와 의미, 계약 위반을 UI에서 즉시 식별한다. */}
+              {/* 상태 코드와 의미, 계약 위반을 UI에서 즉시 식별. */}
             </div>
           </div>
           <Link to="/dashboard" className={clsx('p-2 rounded-lg border shrink-0', isDark ? 'border-white/10 text-gray-300 hover:bg-white/10' : 'border-slate-200 text-slate-700 hover:bg-slate-50')}>

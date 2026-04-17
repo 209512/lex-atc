@@ -115,7 +115,7 @@ export const RadarLite = () => {
                 <meshBasicMaterial color={l4Color} transparent opacity={isPaused ? 0.15 : 0.55} />
               </Ring>
               
-              {/* 미니 텍스트 라벨 (심미성 향상) */}
+              {/* 미니 텍스트 라벨 */}
               <Html position={[0.4, 0.4, 0]} center style={{ pointerEvents: 'none' }}>
                 <div className={clsx(
                   "text-[8px] font-mono px-1 py-0.5 rounded opacity-80 whitespace-nowrap",

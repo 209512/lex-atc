@@ -114,9 +114,7 @@ module.exports = function setupApiRoutes(app, svc, middlewares) {
         return res.json({ success: true });
     }));
 
-    // ==========================================
     // 1. System Control
-    // ==========================================
     app.post('/api/override', adminRate, authGovernor, asyncRoute(async (req, res) => {
         const result = await svc.governanceEngine.propose({ adminId: req.admin.id, action: 'OVERRIDE', params: {}, reason: 'API_OVERRIDE' });
         res.json({ success: true, scheduled: true, ...result });
@@ -133,9 +131,7 @@ module.exports = function setupApiRoutes(app, svc, middlewares) {
         res.json({ success: true, scheduled: true, ...result });
     }));
 
-    // ==========================================
     // 2. Agent Management
-    // ==========================================
     app.get('/api/agents/status', asyncRoute(async (req, res) => {
         const status = await svc.getAgentStatus();
         res.json(status);
@@ -252,9 +248,7 @@ module.exports = function setupApiRoutes(app, svc, middlewares) {
         res.json({ success: true, scheduled: true, ...result });
     }));
 
-    // ==========================================
     // 3. Task Management (DLQ & Retries)
-    // ==========================================
     app.get('/api/tasks/pending', adminRate, authOperator, asyncRoute(async (req, res) => {
         const result = svc.listIsolationTasks();
         res.json(result);
@@ -288,9 +282,7 @@ module.exports = function setupApiRoutes(app, svc, middlewares) {
         res.json({ success: true, scheduled: true, ...result });
     }));
 
-    // ==========================================
     // 4. Web3 Settlement & Dispute
-    // ==========================================
     app.post('/api/settlement/disputes', adminRate, authExecutor, validateBody({ channelId: { required: true, type: 'string' }, openedBy: { required: false, type: 'string' }, targetNonce: { required: false, type: 'number' }, reason: { required: false, type: 'string' } }), asyncRoute(async (req, res) => {
         const { channelId, openedBy, targetNonce, reason } = req.body || {};
         const result = await svc.governanceEngine.propose({
@@ -322,9 +314,7 @@ module.exports = function setupApiRoutes(app, svc, middlewares) {
         res.json({ success: true, scheduled: true, ...result });
     }));
 
-    // ==========================================
     // 5. Governance Proposals
-    // ==========================================
     app.get('/api/governance/proposals', adminRate, authOperator, asyncRoute(async (req, res) => {
         const result = svc.governanceEngine.getPublicState();
         res.json(result);

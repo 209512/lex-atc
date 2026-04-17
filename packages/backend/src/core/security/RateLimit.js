@@ -12,7 +12,6 @@ class RateLimiter {
         this.now = now;
         this.buckets = new Map();
         
-        // Fix memory leak: cleanup expired buckets periodically
         this.cleanupInterval = setInterval(() => this.cleanup(), cleanupIntervalMs);
         if (this.cleanupInterval.unref) {
             this.cleanupInterval.unref();

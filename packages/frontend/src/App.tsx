@@ -1,5 +1,5 @@
-import { useShallow } from 'zustand/react/shallow';
 // src/App.tsx
+import { useShallow } from 'zustand/react/shallow';
 import React from 'react';
 import clsx from 'clsx';
 import { Outlet } from 'react-router-dom';

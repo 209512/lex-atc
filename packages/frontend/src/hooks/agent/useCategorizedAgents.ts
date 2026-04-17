@@ -1,5 +1,5 @@
-import { useShallow } from 'zustand/react/shallow';
 // src/hooks/agent/useCategorizedAgents.ts
+import { useShallow } from 'zustand/react/shallow';
 import { useMemo } from 'react';
 import { useATCStore } from '@/store/atc';
 import { Agent } from '@/contexts/atcTypes';

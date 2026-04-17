@@ -1,5 +1,5 @@
-import { useShallow } from 'zustand/react/shallow';
 // src/components/sidebar/AgentList.tsx
+import { useShallow } from 'zustand/react/shallow';
 import React from 'react';
 import { Star, Shield, Play, Pause } from 'lucide-react';
 import { Reorder } from 'framer-motion';

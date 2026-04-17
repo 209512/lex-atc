@@ -1,5 +1,5 @@
-import { useShallow } from 'zustand/react/shallow';
 // src/components/monitoring/queue/QueueDisplay.tsx
+import { useShallow } from 'zustand/react/shallow';
 import React, { useRef } from 'react';
 import Draggable from 'react-draggable';
 import clsx from 'clsx';

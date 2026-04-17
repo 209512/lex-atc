@@ -1,5 +1,5 @@
-import { useShallow } from 'zustand/react/shallow';
 // src/components/sidebar/SystemStats.tsx
+import { useShallow } from 'zustand/react/shallow';
 import React, { useState, useEffect, useMemo } from 'react'; 
 import clsx from 'clsx';
 import { Cpu, Radio, AlertTriangle } from 'lucide-react';

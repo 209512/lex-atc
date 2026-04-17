@@ -1,5 +1,5 @@
-import { useShallow } from 'zustand/react/shallow';
 // src/components/sidebar/AgentCard.tsx
+import { useShallow } from 'zustand/react/shallow';
 import React, { useMemo, memo } from 'react';
 import clsx from 'clsx';
 import { GripVertical } from 'lucide-react';
@@ -38,7 +38,6 @@ const AgentCardComponent = ({
     const { playClick  } = useATCStore(useShallow(s => ({ playClick: s.actions.playClick })));
     const { isLocked, isPaused, isForced, isPriority, isOverride } = useAgentLogic(agent, state);
 
-    // [최적화] 카드가 열려 있을 때만 로그 필터링 수행
     const filteredLogs = useMemo(() => {
         if (!isSelected) return []; 
         

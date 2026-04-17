@@ -1,5 +1,5 @@
-import { useShallow } from 'zustand/react/shallow';
 // src/components/monitoring/radar/AgentDetailPopup.tsx
+import { useShallow } from 'zustand/react/shallow';
 import React from 'react';
 import { Html } from '@react-three/drei';
 import { X, Pause, Activity, Cpu, Database } from 'lucide-react'; 

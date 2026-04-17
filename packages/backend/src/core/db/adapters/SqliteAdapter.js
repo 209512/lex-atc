@@ -95,10 +95,7 @@ class SqliteAdapter {
         return new Promise((resolve, reject) => {
             // Replace $1, $2, etc with ?
             const sqliteSql = sql.replace(/\$\d+/g, '?');
-            
-            // Fix RETURNING * syntax for SQLite if needed or just ignore
-            // Also map JSONB to JSON for sqlite conceptually, but SQLite doesn't care about type names much
-            
+                        
             if (sqliteSql.trim().toUpperCase().startsWith('SELECT') || sqliteSql.trim().toUpperCase().startsWith('WITH')) {
                 this.db.all(sqliteSql, params, (err, rows) => {
                     if (err) reject(err);

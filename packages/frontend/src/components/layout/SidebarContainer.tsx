@@ -1,5 +1,5 @@
-import { useShallow } from 'zustand/react/shallow';
 // src/components/layout/SidebarContainer.tsx
+import { useShallow } from 'zustand/react/shallow';
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { useUIStore } from '@/store/ui';

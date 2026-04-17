@@ -16,7 +16,6 @@ const toLamports = (sol) => Math.round(Number(sol || 0) * 1_000_000_000);
 const ArchivingWorker = require('../ArchivingWorker');
 const Irys = require('@irys/sdk');
 const AuditTrailArchiver = require('./AuditTrailArchiver');
-// logger is already imported at the top of the file
 
 class SettlementEngine {
     constructor(atcService) {

@@ -1,5 +1,5 @@
-import { useShallow } from 'zustand/react/shallow';
 // src/components/sidebar/SidebarHeader.tsx
+import { useShallow } from 'zustand/react/shallow';
 import React from 'react';
 import clsx from 'clsx';
 import { ShieldAlert, Activity, Settings, EyeOff, Moon, Sun, Eye } from 'lucide-react';

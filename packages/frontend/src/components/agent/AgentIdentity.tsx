@@ -1,5 +1,5 @@
-import { useShallow } from 'zustand/react/shallow';
 // src/components/agent/AgentIdentity.tsx
+import { useShallow } from 'zustand/react/shallow';
 import React, { useState, useCallback } from 'react';
 import { Check, X } from 'lucide-react';
 import clsx from 'clsx';

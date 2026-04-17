@@ -1,6 +1,6 @@
 /* src/App.css */
 #root {
-  /* 기존의 max-width, margin, padding, text-align을 모두 무력화합니다 */
+  /* 기존의 max-width, margin, padding, text-align을 모두 무력화 */
   width: 100vw;
   height: 100vh;
   margin: 0;

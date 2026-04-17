@@ -80,7 +80,6 @@ class GovernanceEngine {
 
     _shouldAutoExecute() {
         const adminAuthDisabled = String(process.env.ADMIN_AUTH_DISABLED || '').toLowerCase() === 'true';
-        // HACKATHON DEMO: Allow auto-execution even in production if auth is disabled
         return adminAuthDisabled;
     }
 

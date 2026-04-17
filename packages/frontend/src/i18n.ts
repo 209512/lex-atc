@@ -32,7 +32,7 @@ const resources = {
   ko: {
     translation: {
       dashboard: {
-        title: "LEX-ATC // 관제탑",
+        title: "LEX-ATC // TRAFFIC",
         quick_policies: "빠른 정책 실행",
         executive_summary: "경영진 요약 (EXECUTIVE SUMMARY)",
         total_agents: "활성 에이전트",
