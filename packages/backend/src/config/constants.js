@@ -1,0 +1,108 @@
+// backend/src/config/constants.js
+
+const num = (name, def) => {
+    const raw = process.env[name];
+    if (raw === undefined || raw === null || raw === '') return def;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : def;
+};
+
+const str = (name, def) => {
+    const raw = process.env[name];
+    if (raw === undefined || raw === null || raw === '') return def;
+    return String(raw);
+};
+
+module.exports = {
+    // Service Timing
+    UPDATE_POOL_DELAY: num('UPDATE_POOL_DELAY', 300),
+    HUMAN_OVERRIDE_DELAY: num('HUMAN_OVERRIDE_DELAY', 1000),
+    LOCK_TIMEOUT: num('LOCK_TIMEOUT', 5000),
+    
+    // Hazelcast Maps & Locks
+    MAP_AGENT_STATES: 'agent_states',
+    MAP_AGENT_STATUS: 'agent_status_map',
+    MAP_AGENT_COMMANDS: 'agent_commands',
+    MAP_ATC_METADATA: 'atc-metadata',
+    MAP_ATC_SHARDS: 'atc-shards',
+    MAP_ATC_QUEUE: 'atc-queue',
+    LOCK_NAME: 'traffic-control-lock',
+    GLOBAL_STOP_LOCK_NAME: 'global-stop-lock',
+    MONITOR_LEADER_LOCK_NAME: 'atc-monitor-leader-lock',
+
+    SHARD_COUNT: num('SHARD_COUNT', 4),
+    SHARD_ID_PREFIX: str('SHARD_ID_PREFIX', 'RG'),
+
+    MONITOR_INTERVAL_MS: num('MONITOR_INTERVAL_MS', 100),
+    HEARTBEAT_STALE_MS: num('HEARTBEAT_STALE_MS', 600),
+    ACTIVITY_STALE_MS: num('ACTIVITY_STALE_MS', 5000),
+    EPOCH_BUMP_COOLDOWN_MS: num('EPOCH_BUMP_COOLDOWN_MS', 2500),
+
+    LOCK_LEASE_MS: num('LOCK_LEASE_MS', 4000),
+    ESCALATION_STEP_MS: num('ESCALATION_STEP_MS', 1500),
+    ESCALATION_BASE_FEE: num('ESCALATION_BASE_FEE', 0.002),
+    ESCALATION_MULTIPLIER: num('ESCALATION_MULTIPLIER', 1.7),
+
+    ISOLATION_TASK_TIMEOUT_MS: num('ISOLATION_TASK_TIMEOUT_MS', 15000),
+    ISOLATION_POLL_INTERVAL_MS: num('ISOLATION_POLL_INTERVAL_MS', 250),
+
+    SETTLEMENT_INTERVAL_MS: num('SETTLEMENT_INTERVAL_MS', 5000),
+    SETTLEMENT_DISPUTE_WINDOW_MS: num('SETTLEMENT_DISPUTE_WINDOW_MS', 60000),
+    SETTLEMENT_STALE_MS: num('SETTLEMENT_STALE_MS', 30000),
+
+    GOVERNANCE_TIMELOCK_MS: num('GOVERNANCE_TIMELOCK_MS', 10000),
+    GOVERNANCE_APPROVAL_THRESHOLD: num('GOVERNANCE_APPROVAL_THRESHOLD', 1),
+    GOVERNANCE_APPROVAL_TOTAL: num('GOVERNANCE_APPROVAL_TOTAL', 1),
+    
+    // Status & Commands
+    ADMIN_FENCE: 'ADMIN-SESSION',
+    CMD_PAUSE: 'PAUSE',
+    
+    // Agent Loop & Timing
+    AGENT_LOOP_DELAY: num('AGENT_LOOP_DELAY', 1000),
+    AGENT_YIELD_DELAY: num('AGENT_YIELD_DELAY', 7000),
+    AGENT_WORK_STEP_DELAY: num('AGENT_WORK_STEP_DELAY', 500),
+    AGENT_WORK_STEPS: num('AGENT_WORK_STEPS', 4),
+    MAX_AGENT_COUNT: num('MAX_AGENT_COUNT', 10),
+    MAX_CANDIDATE_NUMBER: num('MAX_CANDIDATE_NUMBER', 100),
+    
+    // 상세 제어 및 타임아웃
+    TRANSFER_STABILIZATION: num('TRANSFER_STABILIZATION', 2000),
+    PRIORITY_RANK_DELAY: num('PRIORITY_RANK_DELAY', 200),
+    NORMAL_BASE_DELAY: num('NORMAL_BASE_DELAY', 500),
+    LOCK_TRY_WAIT_TARGET: num('LOCK_TRY_WAIT_TARGET', 1000),
+    LOCK_TRY_WAIT_NORMAL: num('LOCK_TRY_WAIT_NORMAL', 200),
+    TRANSFER_TIMEOUT: num('TRANSFER_TIMEOUT', 8000),
+    
+    // 안정성 및 백오프
+    MIN_BACKOFF_DELAY: num('MIN_BACKOFF_DELAY', 1000),
+    MAX_BACKOFF_DELAY: num('MAX_BACKOFF_DELAY', 30000),
+    
+    // Agent Status Strings
+    STATUS_GLOBAL_STOP: 'GLOBAL STOP',
+    STATUS_PAUSED: 'PAUSED',
+    STATUS_WAITING: 'WAITING',
+    STATUS_ACTIVE: 'ACTIVE',
+    STATUS_IDLE: 'IDLE',
+    
+    RESOURCE_NONE: 'None',
+
+    MINING_YIELD_STEP: num('MINING_YIELD_STEP', 500),
+    SYSTEM_REPORT_INTERVAL: num('SYSTEM_REPORT_INTERVAL', 15000),
+    CHALLENGE_TIMEOUT: num('CHALLENGE_TIMEOUT', 30000),
+    HZ_CONNECT_RETRY_MS: num('HZ_CONNECT_RETRY_MS', 3000),
+    HZ_MAX_RETRIES: num('HZ_MAX_RETRIES', 5),
+    LOG_RETENTION: num('LOG_RETENTION', 2000),
+
+    // Agent Loop Delays
+    AGENT_PAUSE_DELAY: num('AGENT_PAUSE_DELAY', 200),
+    AGENT_ESCROW_DELAY: num('AGENT_ESCROW_DELAY', 2000),
+    AGENT_NO_SHARD_DELAY: num('AGENT_NO_SHARD_DELAY', 200),
+    AGENT_TAKEOVER_DELAY: num('AGENT_TAKEOVER_DELAY', 100),
+    AGENT_WAITING_DELAY: num('AGENT_WAITING_DELAY', 200),
+    AGENT_QUEUE_DELAY: num('AGENT_QUEUE_DELAY', 100),
+    AGENT_ERROR_DELAY: num('AGENT_ERROR_DELAY', 1000),
+    AGENT_AI_TIMEOUT: num('AGENT_AI_TIMEOUT', 12000),
+    AGENT_MIN_TASK_TIME: num('AGENT_MIN_TASK_TIME', 1500),
+    AGENT_SLASHED_DELAY: num('AGENT_SLASHED_DELAY', 2000)
+};
