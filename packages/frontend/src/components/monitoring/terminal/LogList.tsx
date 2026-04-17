@@ -87,7 +87,7 @@ export const LogList: React.FC<LogListProps> = ({
           const displayMsg = displayMsgRaw ? String(displayMsgRaw).replace(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/gi, match => formatId(match)) : '';
           
           return (
-            <div key={`${log.id}-${actualIdx}`} className="absolute w-full px-2" style={{ top: actualIdx * LOG_LINE_HEIGHT, height: LOG_LINE_HEIGHT }}>
+            <div key={`${log.id || log.timestamp || idx}-${actualIdx}`} className="absolute w-full px-2" style={{ top: actualIdx * LOG_LINE_HEIGHT, height: LOG_LINE_HEIGHT }}>
               <LogItem log={{...log, message: displayMsg}} isDark={isDark} />
             </div>
           );

@@ -58,8 +58,8 @@ export const AgentActionButtons = ({
                     onClick={(e) => { e.stopPropagation(); openOperationsModal(agent.uuid || agent.id, 'slash'); }} 
                     className={getActionButtonClass(false, "bg-orange-500/10 text-orange-500 border border-orange-500/50", "hover:bg-orange-500/20 text-orange-500", false, showLabels)}
                 >
-                    <Scale size={12} />
-                    {showLabels && <span>Slash</span>}
+                    <Scale size={12} className="shrink-0" />
+                    {showLabels && <span className="truncate">Slash</span>}
                 </button>
             </Tooltip>
 
@@ -69,8 +69,8 @@ export const AgentActionButtons = ({
                     onClick={(e) => { e.stopPropagation(); onTogglePriority(agent.uuid || agent.id, !isPriority); }} 
                     className={getActionButtonClass(isPriority, "bg-yellow-500/10 text-yellow-500 border border-yellow-500/50", "hover:bg-yellow-400/10", false, showLabels)}
                 >
-                    <Star size={12} className={clsx(isPriority && "fill-current")} />
-                    {showLabels && <span>Priority</span>}
+                    <Star size={12} className={clsx("shrink-0", isPriority && "fill-current")} />
+                    {showLabels && <span className="truncate">Priority</span>}
                 </button>
             </Tooltip>
 
@@ -80,8 +80,8 @@ export const AgentActionButtons = ({
                     disabled={!canSeize} 
                     className={getActionButtonClass(canSeize, "bg-purple-500/10 text-purple-500 border border-purple-500/50", "hover:bg-purple-500/20", !canSeize, showLabels)}
                 >
-                    <Zap size={12} fill={canSeize ? "currentColor" : "none"} />
-                    {showLabels && <span>Seize</span>}
+                    <Zap size={12} fill={canSeize ? "currentColor" : "none"} className="shrink-0" />
+                    {showLabels && <span className="truncate">Seize</span>}
                 </button>
             </Tooltip>
 
@@ -91,8 +91,8 @@ export const AgentActionButtons = ({
                     disabled={isPauseDisabled}
                     className={getActionButtonClass(isPaused, "bg-zinc-700 text-zinc-100 border border-zinc-500", "hover:bg-zinc-600", isPauseDisabled, showLabels)}
                 >
-                    {isPaused ? <Play size={12} fill="currentColor" /> : <Pause size={12} fill="currentColor" />}
-                    {showLabels && <span>{isPaused ? 'Resume' : 'Pause'}</span>}
+                    {isPaused ? <Play size={12} fill="currentColor" className="shrink-0" /> : <Pause size={12} fill="currentColor" className="shrink-0" />}
+                    {showLabels && <span className="truncate">{isPaused ? 'Resume' : 'Pause'}</span>}
                 </button>
             </Tooltip>
 
@@ -101,8 +101,8 @@ export const AgentActionButtons = ({
                     onClick={(e) => { e.stopPropagation(); onTerminate(agent.uuid || agent.id); }} 
                     className={getActionButtonClass(false, "", "hover:bg-red-500/20 text-red-500", false, showLabels)}
                 >
-                    <Trash2 size={12} />
-                    {showLabels && <span>Terminate</span>}
+                    <Trash2 size={12} className="shrink-0" />
+                    {showLabels && <span className="truncate">Terminate</span>}
                 </button>
             </Tooltip>
         </div>

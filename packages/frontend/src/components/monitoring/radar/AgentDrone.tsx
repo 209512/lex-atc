@@ -108,6 +108,12 @@ export const AgentDrone = ({
         return color;
     }, [isOverride, isPaused, isGlobalStopped, isForced, isLocked, isPriority, color, isDark]);
 
+    const recentLogs = useMemo(() => {
+        return (state?.logs || [])
+            .filter(l => l.agentId === id && Date.now() - l.timestamp < 3000)
+            .slice(-3); // Show max 3 recent logs
+    }, [state?.logs, id]);
+
     return (
         <>
             {isGlobalStopped && (
@@ -147,6 +153,20 @@ export const AgentDrone = ({
                     isSelected={isSelected} isPaused={isPaused || isGlobalStopped}
                     isPriority={isPriority} isOverride={isOverride}
                 />
+
+                {/* Floating Effect for Money / Logs */}
+                {recentLogs.map((log, idx) => (
+                    <Html key={log.id} position={[0, 1.5 + idx * 0.4, 0]} center distanceFactor={15} zIndexRange={[0, 10]} style={{ pointerEvents: 'none' }}>
+                        <div className={clsx(
+                            "px-1.5 py-0.5 rounded text-[8px] font-mono border whitespace-nowrap animate-bounce shadow-lg",
+                            log.type === 'critical' || log.message.includes('Slash') ? "bg-red-500 text-white border-red-400 scale-125" :
+                            log.message.includes('SOL') ? "bg-emerald-500/90 text-white border-emerald-400" :
+                            "bg-black/70 text-white border-gray-500"
+                        )}>
+                            {log.message.includes('SOL') ? log.message.split(' ').slice(-2).join(' ') : (log.message.includes('Slash') ? '💥 SLASHED' : log.message.slice(0, 15))}
+                        </div>
+                    </Html>
+                ))}
 
                 {/* 레이더 팝업창 */}
                 {isSelected && agentData && (

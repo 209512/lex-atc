@@ -78,20 +78,24 @@ export const createATCCoreSlice: StateCreator<ATCStore, [], [], ATCCoreSlice> = 
     if (finalValue !== state.trafficIntensity) {
       get().playClick();
       const prevIntensity = state.trafficIntensity;
+      get().markAction('', 'trafficIntensity', finalValue);
       get().setState((prev) => ({ ...prev, trafficIntensity: finalValue }));
 
       atcApi.scaleAgents(finalValue)
         .then((res) => {
           if (res.agents) {
             get().setAgents(res.agents);
+            get().markAction('', 'trafficIntensity', res.agents.length);
             get().setState((prev) => ({ ...prev, trafficIntensity: res.agents.length }));
           } else {
+            get().markAction('', 'trafficIntensity', finalValue);
             get().setState((prev) => ({ ...prev, trafficIntensity: finalValue }));
           }
         })
         .catch((err) => {
           get().playAlert();
           get().addLog(`SCALE_FAILED: ${err.message}`, 'error');
+          get().markAction('', 'trafficIntensity', prevIntensity);
           get().setState((prev) => ({ ...prev, trafficIntensity: prevIntensity }));
         });
     }
@@ -157,12 +161,13 @@ export const createATCCoreSlice: StateCreator<ATCStore, [], [], ATCCoreSlice> = 
 
   transferLock: (uuid: string) => {
     get().playAlert();
-    get().markAction(uuid, 'forcedCandidate', uuid);
+    get().markAction('', 'forcedCandidate', uuid);
     get().setState((prev) => ({ ...prev, forcedCandidate: uuid }));
     get().addLog(`FORCE_TRANSFER_INITIATED`, 'system', uuid);
 
     atcApi.transferLock(uuid).catch((err) => {
       get().addLog(`TRANSFER_FAILED: ${err.message}`, 'error', uuid);
+      get().markAction('', 'forcedCandidate', null);
       get().setState((prev) => ({ ...prev, forcedCandidate: null }));
     });
   },
@@ -222,27 +227,27 @@ export const createATCCoreSlice: StateCreator<ATCStore, [], [], ATCCoreSlice> = 
 
   renameAgent: async (uuid: string, newName: string) => {
     if (!newName) return;
-    get().markAction(uuid, 'rename', newName);
+    get().markAction(uuid, 'displayName', newName);
     try {
       await atcApi.renameAgent(uuid, newName);
       if (!get().isAdminMuted) audioService.play(1100, 'sine', 0.1, 0.05);
     } catch (err: any) {
       get().playAlert();
       get().addLog(`RENAME_FAILED: ${err.message}`, 'error', uuid);
-      get().markAction(uuid, 'rename', null);
+      get().markAction(uuid, 'displayName', null);
       throw err;
     }
   },
 
   submitRename: async (uuid: string, newName: string) => {
     if (!newName) return;
-    get().markAction(uuid, 'rename', newName);
+    get().markAction(uuid, 'displayName', newName);
     try {
       await atcApi.renameAgent(uuid, newName);
       if (!get().isAdminMuted) audioService.play(1100, 'sine', 0.1, 0.05);
     } catch (_err: any) {
       get().playAlert();
-      get().markAction(uuid, 'rename', null);
+      get().markAction(uuid, 'displayName', null);
     }
   },
 });

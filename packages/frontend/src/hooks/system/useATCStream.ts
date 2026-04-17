@@ -19,7 +19,7 @@ export const useATCStream = () => {
   const setAgents = useATCStore.getState().setAgents;
   const markActionStore = useATCStore.getState().markAction;
 
-  const deletedIds = useRef<Set<string>>(new Set());
+  const deletedIds = useRef<Map<string, number>>(new Map());
   const fieldLocks = useRef<Map<string, Map<string, { value: any, expiry: number }>>>(new Map());
   
   const reconnectTimeoutRef = useRef<any>(null);
@@ -36,7 +36,11 @@ export const useATCStream = () => {
           const originalId = String(agent.id);
           
           if (deletedIds.current.has(originalId)) {
-              deletedIds.current.delete(originalId);
+              if (deletedIds.current.get(originalId)! > now) {
+                  return null; // Skip deleted agent to prevent flickering
+              } else {
+                  deletedIds.current.delete(originalId);
+              }
           }
 
           const agentLocks = fieldLocks.current.get(originalId);
@@ -60,7 +64,7 @@ export const useATCStream = () => {
             ...finalAgent,
             id: originalId,
             uuid: originalId,
-            displayId: agent.displayName || formatId(originalId),
+            displayId: finalAgent.displayName || formatId(originalId),
             status: String(finalAgent.status || 'idle').toLowerCase() as any,
             position: validPosition
           };
@@ -87,7 +91,17 @@ export const useATCStream = () => {
           .sort((a, b) => Number(a.timestamp) - Number(b.timestamp))
           .slice(-MAX_LOGS);
 
-        return { ...prev, ...bufferedState, logs: sortedLogs };
+        const globalLocks = fieldLocks.current.get('');
+        let finalState = { ...bufferedState };
+        if (globalLocks) {
+          globalLocks.forEach((lock, field) => {
+            if (lock.expiry > now) finalState[field] = lock.value;
+            else globalLocks.delete(field);
+          });
+          if (globalLocks.size === 0) fieldLocks.current.delete('');
+        }
+
+        return { ...prev, ...finalState, logs: sortedLogs };
       });
       dataBuffer.current.state = null;
     }
@@ -143,7 +157,7 @@ export const useATCStream = () => {
       markActionStore(agentId, field, value, isDelete);
       const originalId = String(agentId);
       if (isDelete) {
-          deletedIds.current.add(originalId);
+          deletedIds.current.set(originalId, Date.now() + 5000);
           fieldLocks.current.delete(originalId);
           setState(prev => ({ ...prev, priorityAgents: (prev.priorityAgents || []).filter(id => id !== originalId) }));
       } else if (field) {
