@@ -1,0 +1,26 @@
+{
+  "name": "lex-atc",
+  "private": true,
+  "description": "LEX-ATC (Agent Traffic Control) System Monorepo",
+  "scripts": {
+    "install:all": "pnpm install",
+    "dev": "concurrently \"pnpm --filter @lex-atc/shared dev\" \"pnpm --filter backend dev\" \"pnpm --filter frontend dev\"",
+    "dev:frontend": "concurrently \"pnpm --filter @lex-atc/shared dev\" \"pnpm --filter frontend dev\"",
+    "dev:backend": "concurrently \"pnpm --filter @lex-atc/shared dev\" \"pnpm --filter backend dev\"",
+    "build": "pnpm --filter @lex-atc/shared build && pnpm --filter frontend build",
+    "lint": "pnpm --filter frontend lint",
+    "clean": "find . -name \"node_modules\" -type d -prune -exec rm -rf '{}' +",
+    "typecheck": "pnpm --filter @lex-atc/shared typecheck && pnpm --filter frontend typecheck",
+    "test": "pnpm --filter @lex-atc/shared test && pnpm --filter frontend test && pnpm --filter backend test",
+    "verify": "pnpm build && pnpm lint && pnpm typecheck && pnpm test",
+    "db:migrate": "cd packages/backend && pnpm dlx dotenv-cli -e ../../.env -- pnpm dlx knex migrate:latest",
+    "db:rollback": "cd packages/backend && pnpm dlx dotenv-cli -e ../../.env -- pnpm dlx knex migrate:rollback",
+    "stress": "pnpm --filter backend stress",
+    "doctor": "node scripts/doctor.js"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "^5.0.0"
+  },
+  "packageManager": "pnpm@10.28.1"
+}

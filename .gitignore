@@ -1,0 +1,98 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Production Builds
+dist/
+dist-ssr/
+build/
+packages/frontend/dist/
+packages/backend/dist/
+
+# Local Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and Editor Files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Python & Machine Learning
+__pycache__/
+venv/
+*.pt
+*.pkl
+
+# Security & Archives
+packages/backend/certs/
+archives/
+*.json.gz
+*.zip
+*.webm
+
+# Docker Data Volumes
+pg_data/
+redis_data/
+prometheus_data/
+grafana_data/
+
+# Web3 & Solana (Anchor)
+target/
+.anchor/
+test-ledger/
+
+# Docker
+docker-compose.override.yml
+
+# Coverage and Test Output
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Temporary Files
+.temp/
+.tmp/
+tmp/
+.cache/
+*.bak
+.eslintcache
+.vercel/
+.venv/
+
+# Yarn/pnpm specific
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnpm-store

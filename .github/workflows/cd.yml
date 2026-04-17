@@ -1,0 +1,101 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/lex-atc-backend
+
+jobs:
+  deploy-frontend:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: packages/frontend
+          vercel-args: '--prod'
+
+  build-and-push-backend:
+    name: Build & Push Backend to GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: packages/backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy-contract:
+    name: Deploy Contract to Solana Mainnet-Beta
+    runs-on: ubuntu-latest
+    needs: [deploy-frontend, build-and-push-backend]
+    if: startsWith(github.ref, 'refs/tags/v') # Only deploy contract on version tags
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Solana CLI
+        run: |
+          sh -c "$(curl -sSfL https://release.solana.com/v1.18.0/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+
+      - name: Install Anchor CLI
+        run: cargo install --git https://github.com/coral-xyz/anchor avm --locked --force && avm install 0.29.0 && avm use 0.29.0
+
+      - name: Build Contract
+        run: cd packages/contracts && anchor build
+
+      - name: Deploy Contract
+        run: |
+          # Write deploy key to file
+          echo "${{ secrets.SOLANA_MAINNET_DEPLOY_KEY }}" > deploy-key.json
+          # Deploy using Anchor
+          cd packages/contracts
+          anchor deploy --provider.cluster mainnet --provider.wallet ../../deploy-key.json
