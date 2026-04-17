@@ -109,10 +109,22 @@ export const AgentDrone = ({
     }, [isOverride, isPaused, isGlobalStopped, isForced, isLocked, isPriority, color, isDark]);
 
     const recentLogs = useMemo(() => {
-        return (state?.logs || [])
+        const isSlashed = (agentData as any)?.slash === true;
+        const baseLogs = (state?.logs || [])
             .filter(l => l.agentId === id && Date.now() - l.timestamp < 3000)
             .slice(-3); // Show max 3 recent logs
-    }, [state?.logs, id]);
+            
+        if (isSlashed) {
+            baseLogs.push({
+                id: `slash-${Date.now()}`,
+                agentId: id,
+                message: '💥 SLASHED',
+                timestamp: Date.now(),
+                type: 'critical' as any
+            });
+        }
+        return baseLogs;
+    }, [state?.logs, id, agentData]);
 
     return (
         <>

@@ -31,6 +31,7 @@ export const OperationsActionModal = () => {
         if (operationsActionType === 'slash') {
            await atcApi.slashSettlement(channelId, operationsTargetId, reason);
            addLog(`SLASH_EXECUTED on ${operationsTargetId}`, 'critical', 'SYSTEM');
+           useATCStore.getState().markAction(operationsTargetId, 'slash', true);
         } else {
            await atcApi.openDispute(channelId, operationsTargetId, undefined, reason);
            addLog(`DISPUTE_OPENED for ${operationsTargetId}`, 'warn', 'SYSTEM');
