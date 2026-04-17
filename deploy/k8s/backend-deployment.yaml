@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lex-atc-backend
+  labels:
+    app: lex-atc-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: lex-atc-backend
+  template:
+    metadata:
+      labels:
+        app: lex-atc-backend
+    spec:
+      containers:
+      - name: backend
+        image: lex-atc-backend:latest # Replace with your ECR/GCR registry
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - secretRef:
+            name: lex-atc-secrets
+        env:
+        - name: HZ_ADDRESS
+          value: "hazelcast-0.hazelcast:5701,hazelcast-1.hazelcast:5701,hazelcast-2.hazelcast:5701"
+        - name: REDIS_SENTINELS
+          value: "redis-sentinel:26379"
+        - name: USE_LOCAL_HZ
+          value: "false"
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lex-atc-backend
+spec:
+  selector:
+    app: lex-atc-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: lex-atc-backend-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: lex-atc-backend
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75

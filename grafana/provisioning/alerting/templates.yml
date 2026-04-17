@@ -1,0 +1,42 @@
+apiVersion: 1
+
+templates:
+  - orgId: 1
+    name: 'custom_slack_template'
+    template: |
+      {{ define "custom_slack.title" }}
+      [{{ .Status | toUpper }}] {{ .CommonLabels.alertname }} ({{ .Alerts | len }} alerts)
+      {{ end }}
+      
+      {{ define "custom_slack.message" }}
+      {{ range .Alerts }}
+      *Alert:* {{ .Annotations.summary }}
+      *Severity:* `{{ .Labels.severity | toUpper }}`
+      
+      *Details:*
+      {{ .Annotations.description }}
+      
+      *Action Required:* 
+      Please check the ATC Ops Dashboard: <${FRONTEND_URL:-http://localhost:5173}/|Go to Dashboard>
+      ---
+      {{ end }}
+      {{ end }}
+
+  - orgId: 1
+    name: 'custom_discord_template'
+    template: |
+      {{ define "custom_discord.title" }}
+      [{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}
+      {{ end }}
+      
+      {{ define "custom_discord.message" }}
+      {{ range .Alerts }}
+      **Alert:** {{ .Annotations.summary }}
+      **Severity:** `{{ .Labels.severity | toUpper }}`
+      
+      **Details:**
+      {{ .Annotations.description }}
+      
+      [Open Lex ATC Dashboard](${FRONTEND_URL:-http://localhost:5173}/)
+      {{ end }}
+      {{ end }}
