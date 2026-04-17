@@ -1,0 +1,91 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: 'Slack Alerts'
+    receivers:
+      - uid: 'slack_webhook'
+        type: webhook
+        settings:
+          url: 'http://host.docker.internal:3000/api/alerts/slack'
+          httpMethod: 'POST'
+          maxAlerts: 10
+  - orgId: 1
+    name: 'Discord Alerts'
+    receivers:
+      - uid: 'discord_webhook'
+        type: webhook
+        settings:
+          url: '${ATC_BACKEND_URL:-http://host.docker.internal:3000}/api/alerts/discord'
+          httpMethod: 'POST'
+          maxAlerts: 10
+
+policies:
+  - orgId: 1
+    receiver: 'Slack Alerts'
+    group_by: ['alertname', 'severity']
+    routes:
+      - receiver: 'Discord Alerts'
+        object_matchers:
+          - ['severity', '=', 'critical']
+
+groups:
+  - orgId: 1
+    name: 'Lex ATC Security Alerts'
+    folder: 'ATC Alerts'
+    interval: 10s
+    rules:
+      - uid: 'ml_anomaly_alert'
+        title: 'High ML Anomaly Score Detected'
+        condition: 'C'
+        data:
+          - refId: 'A'
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: 'Prometheus'
+            model:
+              expr: 'lex_atc_ml_anomaly_score > 0.8'
+              refId: 'A'
+          - refId: 'C'
+            datasourceUid: '__expr__'
+            model:
+              type: 'math'
+              expression: '$A > 0'
+              refId: 'C'
+        noDataState: 'OK'
+        execErrState: 'Alerting'
+        for: 10s
+        annotations:
+          summary: 'Agent {{ $labels.agent_uuid }} exhibits high anomaly score.'
+          description: "The ML Watcher detected an anomaly score of {{ $values.A.Value | printf \"%.2f\" }} for agent {{ $labels.agent_uuid }}.\n\nContext:\n- Balance: {{ $labels.balance }} SOL\n- Total Tasks: {{ $labels.total_tasks }}\n\nImmediate attention may be required."
+        labels:
+          severity: 'critical'
+
+      - uid: 'lock_occupancy_alert'
+        title: 'Prolonged Lock Occupancy (Deadlock Risk)'
+        condition: 'C'
+        data:
+          - refId: 'A'
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: 'Prometheus'
+            model:
+              # Configurable alert threshold (default 15s)
+              expr: 'lex_atc_lock_occupancy_ms > ${LOCK_OCCUPANCY_ALERT_MS:-15000}'
+              refId: 'A'
+          - refId: 'C'
+            datasourceUid: '__expr__'
+            model:
+              type: 'math'
+              expression: '$A > 0'
+              refId: 'C'
+        noDataState: 'OK'
+        execErrState: 'Alerting'
+        for: 10s
+        annotations:
+          summary: 'Holder {{ $labels.holder }} has held the lock for too long.'
+          description: "The global lock on shard {{ $labels.shard_id }} has been held by {{ $labels.holder }} for more than {{ $values.A.Value | printf \"%.0f\" }} ms.\n\nContext:\n- Balance: {{ $labels.balance }} SOL\n- Total Tasks: {{ $labels.total_tasks }}\n\nThis could indicate a deadlock or monopolization."
+        labels:
+          severity: 'warning'
