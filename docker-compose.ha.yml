@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL HA Setup (Primary + Replica + Pgpool-II)
+  pg-0:
+    image: bitnami/postgresql-repmgr:15
+    container_name: lex-pg-0
+    environment:
+      - POSTGRESQL_POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Required}
+      - POSTGRESQL_USERNAME=${POSTGRES_USER:?Required}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD:?Required}
+      - POSTGRESQL_DATABASE=${POSTGRES_DB:?Required}
+      - REPMGR_PASSWORD=${REPMGR_PASSWORD:?Required}
+      - REPMGR_PRIMARY_HOST=pg-0
+      - REPMGR_PARTNER_NODES=pg-0,pg-1
+      - REPMGR_NODE_NAME=pg-0
+      - REPMGR_NODE_NETWORK_NAME=pg-0
+    ports:
+      - "5432"
+
+  pg-1:
+    image: bitnami/postgresql-repmgr:15
+    container_name: lex-pg-1
+    environment:
+      - POSTGRESQL_POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Required}
+      - POSTGRESQL_USERNAME=${POSTGRES_USER:?Required}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD:?Required}
+      - POSTGRESQL_DATABASE=${POSTGRES_DB:?Required}
+      - REPMGR_PASSWORD=${REPMGR_PASSWORD:?Required}
+      - REPMGR_PRIMARY_HOST=pg-0
+      - REPMGR_PARTNER_NODES=pg-0,pg-1
+      - REPMGR_NODE_NAME=pg-1
+      - REPMGR_NODE_NETWORK_NAME=pg-1
+    depends_on:
+      - pg-0
+
+  pgpool:
+    image: bitnami/pgpool:4
+    container_name: lex-pgpool
+    environment:
+      - PGPOOL_BACKEND_NODES=0:pg-0:5432,1:pg-1:5432
+      - PGPOOL_SR_CHECK_USER=${POSTGRES_USER}
+      - PGPOOL_SR_CHECK_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_ENABLE_LOAD_BALANCING=yes
+      - PGPOOL_POSTGRES_USERNAME=${POSTGRES_USER}
+      - PGPOOL_POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_ADMIN_USERNAME=admin
+      - PGPOOL_ADMIN_PASSWORD=${PGPOOL_ADMIN_PASSWORD:?Required}
+    ports:
+      - "5432:5432"
+    depends_on:
+      - pg-0
+      - pg-1
+
+  # 2. Redis HA Setup (Master + Replica + Sentinel)
+  redis-master:
+    image: bitnami/redis:latest
+    container_name: lex-redis-master
+    environment:
+      - REDIS_REPLICATION_MODE=master
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Required}
+    ports:
+      - "6379"
+
+  redis-replica:
+    image: bitnami/redis:latest
+    container_name: lex-redis-replica
+    environment:
+      - REDIS_REPLICATION_MODE=slave
+      - REDIS_MASTER_HOST=redis-master
+      - REDIS_MASTER_PASSWORD=${REDIS_PASSWORD:?Required}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Required}
+    depends_on:
+      - redis-master
+    ports:
+      - "6379"
+
+  redis-sentinel:
+    image: bitnami/redis-sentinel:latest
+    container_name: lex-redis-sentinel
+    environment:
+      - REDIS_MASTER_HOST=redis-master
+      - REDIS_MASTER_SET=mymaster
+      - REDIS_SENTINEL_DOWN_AFTER_MILLISECONDS=5000
+      - REDIS_SENTINEL_FAILOVER_TIMEOUT=10000
+      - REDIS_MASTER_PASSWORD=${REDIS_PASSWORD:?Required}
+    depends_on:
+      - redis-master
+      - redis-replica
+    ports:
+      - "26379:26379"
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    environment:
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_HOST=pgpool
+      - DB_NAME=${POSTGRES_DB}
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=1000
+      - DEFAULT_POOL_SIZE=20
+      - ADMIN_USERS=${POSTGRES_USER}
+      - AUTH_TYPE=any
+    depends_on:
+      - pgpool
+
+  # 3. Application Backend
+  backend:
+    build:
+      context: .
+      dockerfile: packages/backend/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}
+      - REDIS_SENTINELS=redis-sentinel:26379
+      - REDIS_SENTINEL_NAME=mymaster
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Required}
+    env_file:
+      - ./.env
+    depends_on:
+      - pgbouncer
+      - redis-sentinel
