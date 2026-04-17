@@ -755,11 +755,6 @@ class SettlementEngine {
             payload: { channelId: normalizedChannelId, reason: normalizedReason, txid: chain.txid, commitment: chain.commitment, status: chain.status }
         });
 
-        // Terminate the agent in the system if not already done in the mock fallback
-        if (this.atcService.agentManager && typeof this.atcService.agentManager.terminateAgent === 'function') {
-            this.atcService.agentManager.terminateAgent(agentUuid, true);
-        }
-
         // Push to UI state logs to trigger the frontend Slashing Heatmap and UI alerts
         if (typeof this.atcService.addLog === 'function') {
             this.atcService.addLog(agentUuid, `🚨 Slashed: ${normalizedReason}`, 'critical', { 
@@ -774,6 +769,12 @@ class SettlementEngine {
                 },
                 arweaveTxId: chain.txid
             });
+        }
+        
+        // Terminate the agent in the system if not already done in the mock fallback
+        if (this.atcService.agentManager && typeof this.atcService.agentManager.terminateAgent === 'function') {
+            logger.info(`[SettlementEngine] Forcibly terminating slashed agent: ${agentUuid}`);
+            this.atcService.agentManager.terminateAgent(agentUuid, true).catch(err => logger.error(`Terminate error: ${err}`));
         }
 
         return { ok: true, txid: chain.txid };
