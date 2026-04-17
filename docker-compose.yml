@@ -1,0 +1,177 @@
+services:
+  # 1. Hazelcast 3-Node Cluster (High Availability & CP Subsystem)
+  hazelcast1:
+    image: hazelcast/hazelcast:5.3
+    ports:
+      - "5701:5701"
+    environment:
+      - HZ_CLUSTER_NAME=${HZ_CLUSTER_NAME}
+      - HZ_NETWORK_JOIN_MULTICAST_ENABLED=false
+      - HZ_NETWORK_JOIN_TCP_IP_ENABLED=true
+      - HZ_NETWORK_JOIN_TCP_IP_MEMBER_LIST=hazelcast1,hazelcast2,hazelcast3
+      - HZ_CPSUBSYSTEM_CPMEMBERCOUNT=3
+      - JAVA_OPTS=-Xms256m -Xmx256m -Dhazelcast.logging.type=log4j2
+
+  hazelcast2:
+    image: hazelcast/hazelcast:5.3
+    ports:
+      - "5702:5701"
+    environment:
+      - HZ_CLUSTER_NAME=${HZ_CLUSTER_NAME}
+      - HZ_NETWORK_JOIN_MULTICAST_ENABLED=false
+      - HZ_NETWORK_JOIN_TCP_IP_ENABLED=true
+      - HZ_NETWORK_JOIN_TCP_IP_MEMBER_LIST=hazelcast1,hazelcast2,hazelcast3
+      - HZ_CPSUBSYSTEM_CPMEMBERCOUNT=3
+      - JAVA_OPTS=-Xms256m -Xmx256m -Dhazelcast.logging.type=log4j2
+
+  hazelcast3:
+    image: hazelcast/hazelcast:5.3
+    ports:
+      - "5703:5701"
+    environment:
+      - HZ_CLUSTER_NAME=${HZ_CLUSTER_NAME}
+      - HZ_NETWORK_JOIN_MULTICAST_ENABLED=false
+      - HZ_NETWORK_JOIN_TCP_IP_ENABLED=true
+      - HZ_NETWORK_JOIN_TCP_IP_MEMBER_LIST=hazelcast1,hazelcast2,hazelcast3
+      - HZ_CPSUBSYSTEM_CPMEMBERCOUNT=3
+      - JAVA_OPTS=-Xms256m -Xmx256m -Dhazelcast.logging.type=log4j2
+
+  db:
+    image: postgres:15-alpine
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    environment:
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_HOST=db
+      - DB_NAME=${POSTGRES_DB}
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=1000
+      - DEFAULT_POOL_SIZE=20
+      - ADMIN_USERS=${POSTGRES_USER}
+      - AUTH_TYPE=any
+    ports:
+      - "6432:5432"
+    depends_on:
+      - db
+
+  # 3. 백엔드
+  backend:
+    build:
+      context: .
+      dockerfile: packages/backend/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - HZ_ADDRESS=hazelcast1:5701,hazelcast2:5701,hazelcast3:5701
+      - HZ_CLUSTER_NAME=${HZ_CLUSTER_NAME}
+      - USE_LOCAL_HZ=false
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - REDIS_SENTINELS=redis-sentinel:26379
+      - REDIS_SENTINEL_NAME=mymaster
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Required}
+      - ML_INFERENCE_API_URL=http://ml-watcher:8000/predict
+    env_file:
+      - ./.env
+    depends_on:
+      - hazelcast1
+      - hazelcast2
+      - hazelcast3
+      - db
+      - redis-sentinel
+      - ml-watcher
+
+  # 4. Redis HA (Sentinel + Master + Replica)
+  redis-master:
+    image: bitnami/redis:latest
+    environment:
+      - REDIS_REPLICATION_MODE=master
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Required}
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/bitnami/redis/data
+
+  redis-replica:
+    image: bitnami/redis:latest
+    environment:
+      - REDIS_REPLICATION_MODE=slave
+      - REDIS_MASTER_HOST=redis-master
+      - REDIS_MASTER_PASSWORD=${REDIS_PASSWORD:?Required}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Required}
+    depends_on:
+      - redis-master
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/bitnami/redis/data
+
+  redis-sentinel:
+    image: bitnami/redis-sentinel:latest
+    environment:
+      - REDIS_MASTER_HOST=redis-master
+      - REDIS_MASTER_SET=mymaster
+      - REDIS_SENTINEL_DOWN_AFTER_MILLISECONDS=5000
+      - REDIS_SENTINEL_FAILOVER_TIMEOUT=10000
+      - REDIS_MASTER_PASSWORD=${REDIS_PASSWORD:?Required}
+    depends_on:
+      - redis-master
+      - redis-replica
+    ports:
+      - "26379:26379"
+    volumes:
+      - redis_data:/bitnami/redis-sentinel
+
+  # 5. ML Watcher Service (FastAPI)
+  ml-watcher:
+    build:
+      context: ./services/ml-watcher
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: lex-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: lex-grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
+    env_file:
+      - ./.env
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - prometheus
+
+volumes:
+  pg_data:
+  redis_data:
