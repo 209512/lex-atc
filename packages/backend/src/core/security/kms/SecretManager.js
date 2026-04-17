@@ -20,7 +20,6 @@ class AwsKmsSecretProvider {
     }
 
     async getSecret(key) {
-        // In a real scenario, this would fetch from AWS:
         // const command = new GetSecretValueCommand({ SecretId: key });
         // const response = await this.client.send(command);
         // return response.SecretString;

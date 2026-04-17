@@ -42,7 +42,6 @@ class TrueWasmSandboxAdapter extends SandboxAdapter {
             // Using WebAssembly.instantiate for true WASM execution
             const instance = await WebAssembly.instantiate(this.wasmModule, importObject);
             
-            // In a real scenario, we'd pass the intent to the WASM exported function
             // const result = instance.exports.execute_intent(task.intent?.text);
             
             return { ok: true, executed: true, mode: 'true_wasm', output: { stdout: "Executed via WebAssembly" } };

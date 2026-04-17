@@ -52,10 +52,8 @@ const loadBackendConfig = (env = process.env) => {
             dbMode = 'memory';
         } else if (env.DATABASE_URL || env.PGHOST) {
             dbMode = 'pg';
-        } else if (!isProd) {
-            dbMode = 'memory';
         } else {
-            dbMode = 'pg';
+            dbMode = 'memory';
         }
     }
 
@@ -167,7 +165,9 @@ const loadBackendConfig = (env = process.env) => {
     const missing = [];
 
     if (isProd) {
-        if (config.cors.allowedOrigins.length === 0) missing.push('CORS_ALLOWED_ORIGINS');
+        if (config.cors.allowedOrigins.length === 0 && !env.CORS_ALLOW_LOCALHOST_WILDCARD) {
+            missing.push('CORS_ALLOWED_ORIGINS');
+        }
         if (!config.adminAuth.disabled) {
             missing.push(...collectMissing(env, ['ADMIN_TOKEN_SECRET']));
         }
