@@ -142,8 +142,12 @@ const requireAdminAuth = (opts = {}) => {
         const secret = process.env.ADMIN_TOKEN_SECRET;
 
         if (disabled) {
-            if (allowWhenDisabled && nodeEnv !== 'production') {
-                req.admin = { id: 'DEV_ADMIN', roles: ['root', 'governor', 'operator', 'executor'] };
+            if (allowWhenDisabled) {
+                // HACKATHON DEMO: Allow disabled auth even in production if explicitly requested
+                if (nodeEnv === 'production') {
+                    logger.warn('⚠️ [SECURITY] Admin auth is disabled in PRODUCTION. This is for demo purposes only.');
+                }
+                req.admin = { id: 'DEMO_ADMIN', roles: ['root', 'governor', 'operator', 'executor'] };
                 return next();
             }
             return res.status(503).json({ error: 'ADMIN_AUTH_DISABLED_IN_PRODUCTION' });
