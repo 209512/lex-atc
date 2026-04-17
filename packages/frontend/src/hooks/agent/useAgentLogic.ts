@@ -26,7 +26,10 @@ export const useAgentLogic = (agent: Agent, state: ATCState) => {
 
   const isForced = useMemo(() => s.forcedCandidate === agent.id, [s.forcedCandidate, agent.id]);
 
-  const isPriority = useMemo(() => !!agent.priority, [agent.priority]);
+  const isPriority = useMemo(() => {
+    if (agent.priority !== undefined) return !!agent.priority; // Honor optimistic update
+    return s.priorityAgents?.includes(agent.uuid || agent.id) || false;
+  }, [agent.priority, s.priorityAgents, agent.uuid, agent.id]);
 
   const isOverride = useMemo(() => !!s.overrideSignal, [s.overrideSignal]);
 
