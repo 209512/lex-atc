@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const { PublicKey } = require('@solana/web3.js');
 const nacl = require('tweetnacl'); // Usually bundled with solana/web3.js
 const bs58 = require('bs58'); // Usually bundled with solana/web3.js
-const { logger } = require('../../utils/logger');
+const logger = require('../../utils/logger');
 const jwt = require('jsonwebtoken');
 
 const getCookieValue = (req, name) => {
