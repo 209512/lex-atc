@@ -26,7 +26,10 @@ export async function setupFaucet(provider: anchor.AnchorProvider, decimals: num
         payer,
         payer.publicKey,
         null,
-        decimals
+        decimals,
+        anchor.web3.Keypair.generate(), // Add explicitly a new keypair for mint
+        undefined,
+        anchor.utils.token.TOKEN_PROGRAM_ID
     );
     
     return {
@@ -36,7 +39,12 @@ export async function setupFaucet(provider: anchor.AnchorProvider, decimals: num
                 provider.connection,
                 payer,
                 mint,
-                targetPubkey
+                targetPubkey,
+                false,
+                "confirmed",
+                undefined,
+                anchor.utils.token.TOKEN_PROGRAM_ID,
+                anchor.utils.token.ASSOCIATED_PROGRAM_ID
             );
             
             await mintTo(
@@ -44,8 +52,11 @@ export async function setupFaucet(provider: anchor.AnchorProvider, decimals: num
                 payer,
                 mint,
                 ata.address,
-                payer.publicKey,
-                amount
+                payer, // Important: use Keypair payer instead of payer.publicKey
+                amount,
+                [],
+                undefined,
+                anchor.utils.token.TOKEN_PROGRAM_ID
             );
             
             return ata.address;
