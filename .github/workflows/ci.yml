@@ -76,7 +76,7 @@ jobs:
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.79.0
+          toolchain: stable
           profile: minimal
           override: true
 
