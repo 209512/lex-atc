@@ -71,9 +71,9 @@ You can record the following key scenarios to showcase the power of the lex-atc 
 
 ---
 
-## 🚀 What Changed: Enterprise Web3 Architecture
+## 🚀 Key Architectural Features
 
-The system has been thoroughly upgraded to support massive scale, zero-downtime, and Web3 security:
+The system is designed to support massive scale, zero-downtime, and Web3 security:
 
 - **Web3 Multi-Sig Auth**: Operator interventions require **Solana Phantom wallet signatures (ed25519)** with timestamp validation to prevent replay attacks. It supports **M-of-N threshold multi-signature** verification to ensure quorum consensus for critical administrative actions.
 - **Hardware-Accelerated 3D Radar**: The L4 Monitoring HUD has been rewritten using `@react-three/fiber` and `@react-three/drei` for 60fps rendering of thousands of agents.
@@ -156,46 +156,44 @@ This keeps the system computationally honest without pretending that raw hash wo
 ## 🛰️ Key Features
 
 ### 1. L1 — Distributed Execution Layer
-- **Hazelcast CP Subsystem** with `FencedLock` for strong lock consistency
-- **Sharded Sequencer** for shard-local epoch, ticket, and ordering control
-- **Heartbeat + Activity Monitoring** to detect stale holders and inactive workers
-- **Lease Expiry + Escalation Fees** to discourage indefinite resource capture
-- **Forced Candidate Transfer** for override and takeover workflows
+- **Hazelcast CP Subsystem** with `FencedLock` for strong lock consistency.
+- **Sharded Sequencer** for shard-local epoch, ticket, and ordering control.
+- **Heartbeat + Activity Monitoring** to detect stale holders and inactive workers.
+- **Lease Expiry + Escalation Fees** to discourage indefinite resource capture.
+- **Forced Candidate Transfer** for override and takeover workflows.
 
 ### 2. L2 — Persistent History Layer
-- **Event Logging / Audit Trail** for lock, governance, isolation, and settlement events
-- **Agent Snapshots** for restart recovery
-- **Economic Transaction Records** for fees, rewards, compensation, and slashing
-- **Replay / Recovery** to reconstruct projections after restart
+- **Event Logging / Audit Trail** for lock, governance, isolation, and settlement events.
+- **Agent Snapshots** for restart recovery.
+- **Economic Transaction Records** for fees, rewards, compensation, and slashing.
+- **Replay / Recovery** to reconstruct projections after restart.
 
 ### 3. L3 — Settlement Layer
-- **Treasury.js** manages the runtime economy
-- **State-channel style snapshots** track balances and signatures over time
+- **Treasury.js** manages the runtime economy.
+- **State-channel style snapshots** track balances and signatures over time.
 - **Solana Smart Contracts (Anchor)** natively enforce Ed25519 multi-sig verification for snapshot disputes, slashing, and final settlement on devnet/mainnet.
-- **AI Watcher** continuously audits channels to automatically flag anomalous behaviors
-- **Compensation transfer** powers hostile takeover semantics
+- **AI Watcher** continuously audits channels to automatically flag anomalous behaviors.
+- **Compensation transfer** powers hostile takeover semantics.
 
 ### 4. L4 — Tactical Monitoring Layer
-- **3D WebGL Radar** (RadarLite) displaying live agent positions, status glow effects, and priority selection via Three.js
-- **L4 Status System** for isolation / settlement / rollback / admin axes
-- **Floating Resizable UI Panels** (Queue, Tactical, Terminal Logs) persisting user layouts across reloads via Zustand Persist
-- **Prometheus Metrics** and SSE streaming for low-latency operator visibility and **Analytics Logs** for economic/error metrics
+- **3D WebGL Radar** displaying live agent positions, status glow effects, and priority selection via Three.js.
+- **L4 Status System** for isolation / settlement / rollback / admin axes.
+- **Floating Resizable UI Panels** (Queue, Tactical, Terminal Logs) persisting user layouts across reloads via Zustand Persist.
+- **Prometheus Metrics** and SSE streaming for low-latency operator visibility and **Analytics Logs** for economic/error metrics.
 - **Multi-language (i18n)** support: Full `react-i18next` integration for global enterprise deployments (English/Korean supported out-of-the-box).
 
 ### 5. Frontend State Management
-- **Zustand `useShallow` Optimization** for rendering efficiency in highly dynamic agent radars and logs
-- **Split Actions & State Architecture** minimizing React Component re-renders
-- **Secure Contexts** to handle Admin Auth Tokens without hardcoding
+- **Zustand `useShallow` Optimization** for rendering efficiency in highly dynamic agent radars and logs.
+- **Split Actions & State Architecture** minimizing React Component re-renders.
+- **Secure Contexts** to handle Admin Auth Tokens without hardcoding.
 
 ### 6. Multi-Provider Agent Runtime
 - **OpenAI / Gemini / Anthropic** provider abstraction
-- graceful fallback to **mock provider** in non-key environments
-- autonomous agent loop with lock acquisition, execution, isolation, reward, and persistence
+- Graceful fallback to **mock provider** in non-key environments
+- Autonomous agent loop with lock acquisition, execution, isolation, reward, and persistence
 
-### Web3 Tracks (Built for Hackathons)
-- **Near AI Cloud (Private AI):** Lex-ATC natively integrates with the `NearAIProvider` using Trusted Execution Environments (TEEs) via the Near AI OpenAI SDK compatibility layer. Autonomous agents process prompts cryptographically isolated from the infrastructure provider, ensuring that all trading/bidding strategies remain strictly confidential.
-- **BNB Chain (Consumer AI):** Configurable to run as an EVM-compatible orchestrator for next-gen consumer AI workflows.
-- **Solana:** Built-in default settlement provider for rapid state synchronization and low-latency slashing.
+### 7. Web3 Settlement
+- **Solana:** Built-in settlement target for state-channel snapshots, disputes, and slashing (devnet/mainnet via configuration).
 
 ---
 
@@ -353,26 +351,26 @@ graph TD
 ## 🧱 Layer-by-Layer View
 
 ### L1 — Execution
-- **Hazelcast FencedLock** protects shard resources
-- **Sharded Sequencer** handles global sequence, shard sequence, epoch, ticket, and bid metadata
-- **Heartbeat / activity / lease supervision** enforces liveness and takeover readiness
+- **Hazelcast FencedLock** protects shard resources.
+- **Sharded Sequencer** handles global sequence, shard sequence, epoch, ticket, and bid metadata.
+- **Heartbeat / activity / lease supervision** enforces liveness and takeover readiness.
 
 ### L2 — History
-- Append-only **event log**
-- **Agent snapshots**
-- **Economic transaction records**
-- **Replay-driven recovery** after restart
+- Append-only **event log**.
+- **Agent snapshots**.
+- **Economic transaction records**.
+- **Replay-driven recovery** after restart.
 
 ### L3 — Settlement
-- **Treasury** applies fees, rewards, compensation, and slashing
-- **Settlement engine** builds signed channel snapshots and utilizes **Anchor** to interact with (simulated) Solana smart contracts
-- **AI Watcher** automatically opens disputes based on collision/error heuristics or external **ML Anomaly API** (FastAPI / Scikit-Learn)
+- **Treasury** applies fees, rewards, compensation, and slashing.
+- **Settlement engine** builds signed channel snapshots and utilizes **Anchor** to interact with (simulated) Solana smart contracts.
+- **AI Watcher** automatically opens disputes based on collision/error heuristics or external **ML Anomaly API** (FastAPI / Scikit-Learn).
 
 ### L4 — Monitoring
-- **React-Router** driven dashboard, status, and event detail views
-- **Draggable & Resizable** tactical UI panels (RadarLite, Analytics Terminal, Queue) with **Mobile Responsive Fallback**
-- **Persisted User Preferences** synchronized to localStorage
-- **Analytics/Logs** separation to manage high-throughput event data
+- **React-Router** driven dashboard, status, and event detail views.
+- **Draggable & Resizable** tactical UI panels (RadarLite, Analytics Terminal, Queue) with **Mobile Responsive Fallback**.
+- **Persisted User Preferences** synchronized to localStorage.
+- **Analytics/Logs** separation to manage high-throughput event data.
 
 ---
 
@@ -399,11 +397,7 @@ docker compose up -d --build
    ```bash
    # Enable actual AI calls instead of mocks
    USE_MOCK_AI=false
-   
-   # For Near AI Track
-   NEAR_AI_API_KEY=your-near-ai-key
-   DEFAULT_PROVIDER=nearai
-   ```
+```
 
 3. **Run the system locally**
 
@@ -437,7 +431,6 @@ Create a `.env` file in the root directory based on `.env.example`.
 | `ADMIN_SOLANA_ALLOWLIST_JSON` | Production Solana admin allowlist (pubkey → roles) | *(required in production)* |
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://lex_admin:...` |
 | `DEFAULT_PROVIDER` | AI Provider selection | `mock` |
-| `NEAR_AI_API_KEY` | Near AI API Key (OpenAI-compatible endpoint) | `null` |
 | `HZ_ADDRESS` | Hazelcast cluster address | `hazelcast:5701` |
 | `REDIS_SENTINELS` | Redis Sentinel endpoints | `redis-sentinel:26379` |
 | `REDIS_SENTINEL_NAME` | Redis Sentinel Master group name | `mymaster` |
@@ -492,19 +485,19 @@ pnpm stress
 
 ## 📌 Operational Notes
 
-- **Consistency-first**: lock operations rely on Hazelcast CP semantics rather than optimistic best effort
-- **Autonomous economics**: bidding, compensation, holding fees, rewards, and slashing all shape runtime behavior
-- **Recovery-aware**: event replay and snapshots are built into the backend lifecycle
-- **Mock-friendly development**: provider and settlement layers support local/mock execution for safe iteration
+- **Consistency-first**: Lock operations rely on Hazelcast CP semantics rather than optimistic best effort.
+- **Autonomous economics**: Bidding, compensation, holding fees, rewards, and slashing all shape runtime behavior.
+- **Recovery-aware**: Event replay and snapshots are built into the backend lifecycle.
+- **Mock-friendly development**: Provider and settlement layers support local/mock execution for safe iteration.
 
 ---
 
-## ⚠️ Known Limitations (Current)
+## ⚠️ Known Limitations
 
-- **Economic atomicity**: full Outbox/Replay is not enforced end-to-end yet. The current runtime is optimized for demos/simulation; production should adopt a strict Outbox pattern and deterministic replay for economy-critical state.
-- **Hostile takeover escrow durability**: takeover escrow is not yet fully persisted across process restarts. Production should store escrow in Redis/Postgres/Hazelcast IMap.
-- **Utility/Entropy scheduling**: utility-based scheduling is R&D. The current system prioritizes stake/bid/queue style policies.
-- **State channel coordinator**: automated Merkle settlement, dispute windows, and full channel lifecycle orchestration are not complete yet.
+- **Economic atomicity**: Full Outbox/Replay is not enforced end-to-end yet. The current runtime is optimized for demos/simulation; production should adopt a strict Outbox pattern and deterministic replay for economy-critical state.
+- **Hostile takeover escrow durability**: Takeover escrow is not yet fully persisted across process restarts. Production should store escrow in Redis/Postgres/Hazelcast IMap.
+- **Utility/Entropy scheduling**: Utility-based scheduling is R&D. The current system prioritizes stake/bid/queue style policies.
+- **State channel coordinator**: Automated Merkle settlement, dispute windows, and full channel lifecycle orchestration are not complete yet.
 
 ---
 
