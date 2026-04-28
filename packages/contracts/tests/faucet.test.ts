@@ -14,7 +14,12 @@ describe("LEX Token Faucet", () => {
     
     // Airdrop SOL to dummy user for rent
     const sig = await provider.connection.requestAirdrop(dummyUser.publicKey, 1000000000);
-    await provider.connection.confirmTransaction(sig);
+    const latestBlockHash = await provider.connection.getLatestBlockhash();
+    await provider.connection.confirmTransaction({
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature: sig,
+    });
 
     // Use faucet to mint LEX tokens
     const ataAddress = await faucet.airdrop(dummyUser.publicKey, 5000);
