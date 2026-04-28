@@ -145,7 +145,7 @@ class SettlementEngine {
             actorUuid: String(agent.uuid),
             correlationId: `settlement:deposit:${String(agent.uuid)}:${Date.now()}`,
             payload: { balance, escrow, total, limit, ...meta }
-        }).catch(() => {});
+        }).catch(err => logger.error('[SettlementEngine] recordEvent error:', err));
 
         throw new Error(reason);
     }
@@ -479,7 +479,10 @@ class SettlementEngine {
 
         const lastNonce = Number(channel.last_nonce ?? -1);
         if (lastNonce >= 0) {
-            const last = await db.getChannelSnapshot(channelId, lastNonce).catch(() => null);
+            const last = await db.getChannelSnapshot(channelId, lastNonce).catch(err => {
+                logger.error(`[SettlementEngine] getChannelSnapshot error for ${channelId}:`, err);
+                return null;
+            });
             if (last && String(last.onchain_status || '') === 'FINALIZED') {
                 return { ok: true, channelId, nonce: lastNonce, txid: last.onchain_txid || null };
             }
@@ -599,7 +602,7 @@ class SettlementEngine {
                 actorUuid,
                 correlationId: `settlement:submit-failed:${snapshot.channelId}:${snapshot.nonce}`,
                 payload: { channelId: snapshot.channelId, nonce: snapshot.nonce, error: String(err?.message || err) }
-            }).catch(() => {});
+            }).catch(recordErr => logger.error('[SettlementEngine] recordEvent error on SETTLEMENT_SUBMIT_FAILED:', recordErr));
             throw err;
         }
 
@@ -609,7 +612,7 @@ class SettlementEngine {
             txid: res.txid,
             status: res.status,
             commitment: res.commitment
-        }).catch(() => {});
+        }).catch(err => logger.error('[SettlementEngine] updateSnapshotOnchainStatus error:', err));
 
         if (this.atcService) {
             // Update lastSnapshotBalance to avoid rapid drain false positives
@@ -659,7 +662,10 @@ class SettlementEngine {
         }
 
         // Ledger verification fallback
-        const existingDispute = await db.getDispute(idempotencyKey).catch(() => null);
+        const existingDispute = await db.getDispute(idempotencyKey).catch(err => {
+            logger.error(`[SettlementEngine] getDispute error for ${idempotencyKey}:`, err);
+            return null;
+        });
         if (existingDispute && existingDispute.status === 'RESOLVED') {
             this.resolvedDisputes.add(idempotencyKey);
             logger.warn(`🛡️ [SettlementEngine] Replay Attack Prevented (Ledger): Dispute already resolved for ${idempotencyKey}`);
@@ -681,7 +687,7 @@ class SettlementEngine {
                 actorUuid: normalizedOpenedBy,
                 correlationId: `dispute:failed:${normalizedChannelId}:${normalizedTargetNonce}`,
                 payload: { channelId: normalizedChannelId, targetNonce: normalizedTargetNonce, reason: normalizedReason, error: String(err?.message || err) }
-            }).catch(() => {});
+            }).catch(recordErr => logger.error('[SettlementEngine] recordEvent error on DISPUTE_OPEN_FAILED:', recordErr));
             throw err;
         }
 
@@ -738,7 +744,7 @@ class SettlementEngine {
                     actorUuid: normalizedActorUuid,
                     correlationId: `slash:failed:${normalizedChannelId}:${normalizedActorUuid}:${normalizedReason}`,
                     payload: { channelId: normalizedChannelId, reason: normalizedReason, error: String(err?.message || err) }
-                }).catch(() => {});
+                }).catch(recordErr => logger.error('[SettlementEngine] recordEvent error on SETTLEMENT_SLASH_FAILED:', recordErr));
                 throw err;
             }
         }
