@@ -47,6 +47,9 @@ jobs:
     - name: Install dependencies
       run: pnpm install
       
+    - name: Build Shared Package
+      run: pnpm --filter @lex-atc/shared build
+      
     - name: Install Playwright Browsers
       run: pnpm --filter frontend exec playwright install --with-deps
       
