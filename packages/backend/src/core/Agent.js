@@ -191,7 +191,7 @@ class Agent {
                   const gl = await cpSubsystem.getLock(CONSTANTS.GLOBAL_STOP_LOCK_NAME);
                   const fence = await gl.tryLock(1);
                   if (fence) {
-                      await gl.unlock(fence).catch(() => {});
+                      await gl.unlock(fence).catch(err => logger.error(`[Agent ${this.uuid}] global stop unlock error:`, err));
                       this._globalStopLockHeldUntil = 0;
                   } else {
                       this._globalStopLockHeldUntil = now + 750;
@@ -214,7 +214,7 @@ class Agent {
                   this.emitReleased(this.uuid);
               }
               if (this.currentTicket && this.currentShardId) {
-                  await this.eventBus.cancelTicket(this.currentShardId, this.uuid).catch(() => {});
+                  await this.eventBus.cancelTicket(this.currentShardId, this.uuid).catch(err => logger.error(`[Agent ${this.uuid}] cancelTicket error during pause:`, err));
                   this.currentTicket = null;
               }
               await this._delay(CONSTANTS.AGENT_PAUSE_DELAY || 200); 
