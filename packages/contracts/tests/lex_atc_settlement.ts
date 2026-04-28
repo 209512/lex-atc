@@ -132,8 +132,9 @@ describe("lex_atc_settlement", () => {
       treasuryKeypair.publicKey,
     );
 
-    const currentSlot = await provider.connection.getSlot();
-    await (provider.connection as any)._rpcRequest("warp_slot", [currentSlot + 300]);
+    // Wait for the dispute window to pass (60 seconds)
+    console.log("Waiting for 62 seconds to bypass dispute window...");
+    await new Promise(resolve => setTimeout(resolve, 62000));
 
     await program.methods
       .slash(reason)
