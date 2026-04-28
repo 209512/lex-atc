@@ -72,7 +72,7 @@ jobs:
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: 1.76.0
           profile: minimal
           override: true
 
@@ -91,7 +91,10 @@ jobs:
         run: cargo install --git https://github.com/coral-xyz/anchor avm --locked --force && avm install 0.29.0 && avm use 0.29.0
 
       - name: Build Contract
-        run: cd packages/contracts && anchor build
+        run: |
+          cd packages/contracts
+          cargo update
+          anchor build
 
       - name: Deploy Contract
         run: |
