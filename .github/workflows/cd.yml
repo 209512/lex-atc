@@ -72,7 +72,7 @@ jobs:
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.84.0
+          toolchain: stable
           profile: minimal
           override: true
 
@@ -88,20 +88,16 @@ jobs:
           echo "$GITHUB_WORKSPACE/solana-release/bin" >> $GITHUB_PATH
 
       - name: Install Anchor CLI
-        run: |
-          cargo install --git https://github.com/coral-xyz/anchor --tag v0.29.0 avm --locked --force
-          avm install 0.29.0
-          avm use 0.29.0
+        run: npm install -g @coral-xyz/anchor-cli@0.29.0
 
       - name: Build Contract
         run: |
-          cd packages/contracts
-          cargo update -p time@0.3.29 --precise 0.3.36
-          cargo update -p toml_parser@1.1.2+spec-1.1.0 --precise 1.1.2+spec-1.1.0 || true
-          anchor build
+          export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
+          cd packages/contracts && anchor build
 
       - name: Deploy Contract
         run: |
+          export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
           # Write deploy key to file
           echo "${{ secrets.SOLANA_MAINNET_DEPLOY_KEY }}" > deploy-key.json
           # Deploy using Anchor

@@ -76,7 +76,7 @@ jobs:
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.84.0
+          toolchain: stable
           profile: minimal
           override: true
 
@@ -98,22 +98,17 @@ jobs:
 
       - name: Generate Local Keypair
         run: |
+          export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
           mkdir -p ~/.config/solana
           solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json
 
       - name: Install Anchor CLI
-        run: |
-          cargo install --git https://github.com/coral-xyz/anchor --tag v0.29.0 avm --locked --force
-          avm install 0.29.0
-          avm use 0.29.0
+        run: npm install -g @coral-xyz/anchor-cli@0.29.0
 
       - name: Install Dependencies
         run: cd packages/contracts && pnpm install
 
       - name: Run Anchor Tests
         run: |
-          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
-          cd packages/contracts
-          cargo update -p time@0.3.29 --precise 0.3.36
-          cargo update -p toml_parser@1.1.2+spec-1.1.0 --precise 1.1.2+spec-1.1.0 || true
-          anchor test
+          export PATH="$GITHUB_WORKSPACE/solana-release/bin:$PATH"
+          cd packages/contracts && anchor test
