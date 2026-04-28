@@ -16,7 +16,8 @@ describe('env config validation', () => {
     expect(() => loadBackendConfig({
       NODE_ENV: 'production',
       ADMIN_TOKEN_SECRET: 'some-secret-key-12345',
-      CORS_ALLOWED_ORIGINS: 'https://example.com'
+      CORS_ALLOWED_ORIGINS: 'https://example.com',
+      DB_MODE: 'pg'
     })).toThrow(/DATABASE_URL/);
   });
 
