@@ -30,7 +30,7 @@ describe("LEX Token Faucet", () => {
         lastValidBlockHeight: latestBlockHashPayer.lastValidBlockHeight,
         signature: sigPayer,
       }, "confirmed");
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
     } catch (e) {
       // Ignore airdrop errors (might not be needed or supported on mainnet/devnet)
     }
@@ -49,7 +49,7 @@ describe("LEX Token Faucet", () => {
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: sig,
       }, "confirmed");
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
     } catch (e) {
       console.log("Airdrop to dummy user failed, proceeding anyway");
     }
