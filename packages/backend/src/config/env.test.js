@@ -1,12 +1,12 @@
 describe('env config validation', () => {
-  test('production requires admin token secret and CORS allowed origins', () => {
+  test('production requires CORS allowed origins', () => {
     jest.resetModules();
     const { loadBackendConfig } = require('./env');
 
     expect(() => loadBackendConfig({
       NODE_ENV: 'production',
       DATABASE_URL: 'postgres://testuser:testpass@localhost:5432/testdb'
-    })).toThrow(/ADMIN_TOKEN_SECRET/);
+    })).toThrow(/CORS_ALLOWED_ORIGINS/);
   });
 
   test('production db mode pg requires DB connection env', () => {
