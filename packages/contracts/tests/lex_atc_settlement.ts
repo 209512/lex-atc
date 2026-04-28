@@ -9,7 +9,7 @@ describe("lex_atc_settlement", () => {
   const program = anchor.workspace.LexAtcSettlement as Program<LexAtcSettlement>;
   
   const [channelPda] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("channel"), program.provider.publicKey.toBuffer()],
+    [Buffer.from("channel"), program.provider.publicKey.toBuffer(), anchor.web3.SystemProgram.programId.toBuffer()],
     program.programId
   );
 
@@ -22,6 +22,8 @@ describe("lex_atc_settlement", () => {
       .accounts({
         channel: channelPda,
         authority: program.provider.publicKey,
+        treasury: anchor.web3.SystemProgram.programId, // Using SystemProgram as a dummy treasury for test
+        ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .rpc();
@@ -43,6 +45,8 @@ describe("lex_atc_settlement", () => {
         .accounts({
           channel: channelPda,
           authority: program.provider.publicKey,
+          treasury: anchor.web3.SystemProgram.programId,
+          ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
         .rpc();
@@ -61,6 +65,7 @@ describe("lex_atc_settlement", () => {
       .accounts({
         channel: channelPda,
         authority: program.provider.publicKey,
+        treasury: anchor.web3.SystemProgram.programId,
       })
       .rpc();
 
@@ -76,6 +81,10 @@ describe("lex_atc_settlement", () => {
       .accounts({
         channel: channelPda,
         authority: program.provider.publicKey,
+        treasury: program.provider.publicKey, // Must be signer, using provider as dummy treasury
+        escrowTokenAccount: anchor.web3.SystemProgram.programId, // Dummy
+        treasuryTokenAccount: anchor.web3.SystemProgram.programId, // Dummy
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
       })
       .rpc();
 
