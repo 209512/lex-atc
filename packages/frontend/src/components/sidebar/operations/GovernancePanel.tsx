@@ -78,7 +78,6 @@ export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
       domain: 'governance',
       actionKey: proposalAction,
     }).catch(e => {
-        console.error('Proposal Action Failed', e);
         addLog(`Proposal Action Failed: ${e.message}`, 'error', 'SYSTEM', { stage: 'failed', domain: 'governance', actionKey: proposalAction });
     });
   }, [addLog, playAlert, proposalAction, proposalCount, proposalPauseFlag, proposalReason, proposalTargetId, proposalThreshold, proposalTimelockMs, runAction]);
@@ -223,7 +222,6 @@ export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
                   domain: 'governance',
                   actionKey: proposal.action,
                 }).catch(e => {
-                    console.error('Approve Action Failed', e);
                     addLog(`Approve Action Failed: ${e.message}`, 'error', 'SYSTEM', { stage: 'failed', domain: 'governance', actionKey: proposal.action });
                 })}
                 className={getActionButtonClass(isDark, 'neutral')}
@@ -244,7 +242,6 @@ export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
                   domain: 'governance',
                   actionKey: proposal.action,
                 }).catch(e => {
-                    console.error('Execute Action Failed', e);
                     addLog(`Execute Action Failed: ${e.message}`, 'error', 'SYSTEM', { stage: 'failed', domain: 'governance', actionKey: proposal.action });
                 })}
                 className={getActionButtonClass(isDark, 'warn')}
@@ -265,7 +262,6 @@ export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
                   domain: 'governance',
                   actionKey: proposal.action,
                 }).catch(e => {
-                    console.error('Cancel Action Failed', e);
                     addLog(`Cancel Action Failed: ${e.message}`, 'error', 'SYSTEM', { stage: 'failed', domain: 'governance', actionKey: proposal.action });
                 })}
                 className={getActionButtonClass(isDark, 'critical')}

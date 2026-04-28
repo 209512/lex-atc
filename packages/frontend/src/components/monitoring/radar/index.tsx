@@ -32,7 +32,7 @@ export const Radar: React.FC<{ compact?: boolean; isMainView?: boolean }> = ({ c
     const handleCreated = useCallback(({ gl }: any) => {
         gl.domElement.addEventListener('webglcontextlost', (event: any) => {
             event.preventDefault();
-            console.warn("[ATC_SYSTEM] WebGL Context Lost. Attempting auto-recovery...");
+            // Attempting auto-recovery silently
         }, false);
     }, []);
 

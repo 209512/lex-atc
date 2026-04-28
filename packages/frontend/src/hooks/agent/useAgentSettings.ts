@@ -6,7 +6,7 @@ import { useUIStore } from '@/store/ui';
 import { frontendConfig } from '@/config/runtime';
 
 export const useAgentSettings = (onClose: () => void) => {
-    const { agents = [], updateAgentConfig  } = useATCStore(useShallow(s => ({ agents: s.agents, updateAgentConfig: s.actions.updateAgentConfig })));
+    const { agents = [], updateAgentConfig, addLog } = useATCStore(useShallow(s => ({ agents: s.agents, updateAgentConfig: s.actions.updateAgentConfig, addLog: s.actions.addLog })));
     const { isDark, areTooltipsEnabled, setAreTooltipsEnabled  } = useUIStore(useShallow(s => ({ isDark: s.isDark, areTooltipsEnabled: s.areTooltipsEnabled, setAreTooltipsEnabled: s.setAreTooltipsEnabled })));
     
     const [selectedAgent, setSelectedAgent] = useState<string>(agents[0]?.id || '');
@@ -47,13 +47,13 @@ export const useAgentSettings = (onClose: () => void) => {
                 }
             } catch (err: any) {
                 if (err.name !== 'AbortError') {
-                    console.error("[ATC_SYSTEM] Network connection failed.");
+                    addLog(`NETWORK CONNECTION FAILED: ${err.message}`, 'error', 'SYSTEM');
                 }
             }
         };
         loadConfig();
         return () => abortController.abort();
-    }, [selectedAgent, API_URL]);
+    }, [selectedAgent, API_URL, addLog]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -73,8 +73,8 @@ export const useAgentSettings = (onClose: () => void) => {
             if (response.ok) {
                 updateAgentConfig(selectedAgent, { model: model.trim() });
             }
-        } catch (err) {
-            console.error("SYNC_ERROR:", err);
+        } catch (err: any) {
+            addLog(`SYNC ERROR: ${err.message}`, 'error', 'SYSTEM');
         } finally {
             setIsLoading(false);
             onClose();

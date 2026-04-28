@@ -140,7 +140,7 @@ export const persistUIState = (value: PersistedUIState) => {
     const serialized = JSON.stringify(value);
     // Capacity management: If the state gets unusually large (>50KB), reset only heavy parts like terminal/tactical to defaults
     if (serialized.length > 50000) {
-      console.warn('[UI_PREFS] State too large, clearing cache to prevent QuotaExceededError.');
+      // State too large, clearing cache to prevent QuotaExceededError
       const lightweightState = {
         ...value,
         preferences: createDefaultUIPreferences()
@@ -149,8 +149,7 @@ export const persistUIState = (value: PersistedUIState) => {
       return;
     }
     window.localStorage.setItem(UI_STORAGE_KEY, serialized);
-  } catch (e) {
-    console.error('[UI_PREFS] Failed to persist state', e);
+  } catch (_e) {
     // Clear storage if quota exceeded
     window.localStorage.removeItem(UI_STORAGE_KEY);
   }

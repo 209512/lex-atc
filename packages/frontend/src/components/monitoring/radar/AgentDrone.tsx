@@ -111,7 +111,7 @@ export const AgentDrone = ({
     const recentLogs = useMemo(() => {
         const isSlashed = (agentData as any)?.slash === true;
         const baseLogs = (state?.logs || [])
-            .filter(l => l.agentId === id && Date.now() - l.timestamp < 3000)
+            .filter(l => l.agentId === id && Date.now() - Number(l.timestamp) < 3000)
             .slice(-3); // Show max 3 recent logs
             
         if (isSlashed) {

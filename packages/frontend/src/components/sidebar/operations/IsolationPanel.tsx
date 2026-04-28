@@ -53,7 +53,6 @@ export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runAc
             domain: 'system',
             actionKey: 'TOGGLE_STOP',
           }).catch(e => {
-            console.error('Emergency Stop Failed', e);
             addLog(`Emergency Stop Failed: ${e.message}`, 'error', 'SYSTEM', { stage: 'failed', domain: 'system', actionKey: 'TOGGLE_STOP' });
           })}
           className={getActionButtonClass(isDark, 'critical')}
@@ -73,7 +72,6 @@ export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runAc
             domain: 'system',
             actionKey: 'TOGGLE_STOP',
           }).catch(e => {
-            console.error('Resume Failed', e);
             addLog(`Resume Failed: ${e.message}`, 'error', 'SYSTEM', { stage: 'failed', domain: 'system', actionKey: 'TOGGLE_STOP' });
           })}
           className={getActionButtonClass(isDark, 'neutral')}
@@ -154,7 +152,6 @@ export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runAc
                   domain: 'isolation',
                   actionKey: 'TASK_FINALIZE',
                 }).catch(e => {
-                    console.error('Finalize Action Failed', e);
                     addLog(`Finalize Action Failed: ${e.message}`, 'error', 'SYSTEM', { stage: 'failed', domain: 'isolation', actionKey: 'TASK_FINALIZE' });
                 })}
                 className={getActionButtonClass(isDark, 'neutral')}
@@ -175,7 +172,6 @@ export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runAc
                   domain: 'isolation',
                   actionKey: 'TASK_ROLLBACK',
                 }).catch(e => {
-                    console.error('Rollback Action Failed', e);
                     addLog(`Rollback Action Failed: ${e.message}`, 'error', 'SYSTEM', { stage: 'failed', domain: 'isolation', actionKey: 'TASK_ROLLBACK' });
                 })}
                 className={getActionButtonClass(isDark, 'warn')}
@@ -196,7 +192,6 @@ export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runAc
                   domain: 'isolation',
                   actionKey: 'TASK_CANCEL',
                 }).catch(e => {
-                    console.error('Cancel Action Failed', e);
                     addLog(`Cancel Action Failed: ${e.message}`, 'error', 'SYSTEM', { stage: 'failed', domain: 'isolation', actionKey: 'TASK_CANCEL' });
                 })}
                 className={getActionButtonClass(isDark, 'critical')}
