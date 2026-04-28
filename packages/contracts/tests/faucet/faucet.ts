@@ -1,5 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
-import { createMint, getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
+import {
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+    TOKEN_PROGRAM_ID,
+    createAssociatedTokenAccountInstruction,
+    createMint,
+    getAssociatedTokenAddressSync,
+    mintTo,
+} from "@solana/spl-token";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -57,49 +64,60 @@ export async function setupFaucet(provider: anchor.AnchorProvider, decimals: num
         null,
         decimals,
         anchor.web3.Keypair.generate(), // Add explicitly a new keypair for mint
-        undefined,
-        anchor.utils.token.TOKEN_PROGRAM_ID
+        { commitment: "confirmed" },
+        TOKEN_PROGRAM_ID
     );
     
     return {
         mint,
         airdrop: async (targetPubkey: anchor.web3.PublicKey, amount: number) => {
-            const ata = await getOrCreateAssociatedTokenAccount(
-                provider.connection,
-                payer,
+            const ataAddress = getAssociatedTokenAddressSync(
                 mint,
                 targetPubkey,
                 false,
-                "confirmed",
-                undefined,
-                anchor.utils.token.TOKEN_PROGRAM_ID,
-                anchor.utils.token.ASSOCIATED_PROGRAM_ID
+                TOKEN_PROGRAM_ID,
+                ASSOCIATED_TOKEN_PROGRAM_ID,
             );
 
-            // Wait for the ATA to be confirmed in the network before minting
-            await waitForAccountInfo(provider.connection, ata.address, "confirmed");
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Extra buffer for GitHub Actions
+            const existing = await provider.connection.getAccountInfo(ataAddress, "confirmed");
+            if (!existing) {
+                const createAtaIx = createAssociatedTokenAccountInstruction(
+                    payer.publicKey,
+                    ataAddress,
+                    targetPubkey,
+                    mint,
+                    TOKEN_PROGRAM_ID,
+                    ASSOCIATED_TOKEN_PROGRAM_ID,
+                );
+
+                const tx = new anchor.web3.Transaction().add(createAtaIx);
+                await anchor.web3.sendAndConfirmTransaction(provider.connection, tx, [payer], {
+                    commitment: "confirmed",
+                });
+            }
+
+            await waitForAccountInfo(provider.connection, ataAddress, "confirmed");
 
             await mintTo(
                 provider.connection,
                 payer,
                 mint,
-                ata.address,
+                ataAddress,
                 payer, // Important: use Keypair payer instead of payer.publicKey
                 amount,
                 [],
-                undefined,
-                anchor.utils.token.TOKEN_PROGRAM_ID
+                { commitment: "confirmed" },
+                TOKEN_PROGRAM_ID
             );
 
             await waitForTokenAccountBalance(
                 provider.connection,
-                ata.address,
+                ataAddress,
                 String(amount),
                 "confirmed",
             );
             
-            return ata.address;
+            return ataAddress;
         }
     };
 }
