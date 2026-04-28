@@ -76,7 +76,7 @@ jobs:
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: 1.76.0
           profile: minimal
           override: true
 
@@ -110,4 +110,6 @@ jobs:
 
       - name: Run Anchor Tests
         run: |
-          cd packages/contracts && anchor test
+          cd packages/contracts
+          cargo update
+          anchor test
