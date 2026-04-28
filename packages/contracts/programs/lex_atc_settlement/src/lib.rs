@@ -307,6 +307,7 @@ pub struct SubmitSnapshot<'info> {
     /// CHECK: used as seed and signature identity
     pub treasury: UncheckedAccount<'info>,
     #[account(address = IX_ID)]
+    /// CHECK: Instructions sysvar account is used to verify ed25519 signature
     pub ix_sysvar: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
