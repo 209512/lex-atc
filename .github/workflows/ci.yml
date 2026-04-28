@@ -76,7 +76,7 @@ jobs:
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.79.0
+          toolchain: 1.84.0
           profile: minimal
           override: true
 
@@ -110,6 +110,5 @@ jobs:
 
       - name: Run Anchor Tests
         run: |
-          cd packages/contracts
-          cargo update
-          anchor test
+          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
+          cd packages/contracts && anchor test
