@@ -92,15 +92,18 @@ jobs:
 
       - name: Install Solana CLI
         run: |
-          sh -c "$(curl -sSfL https://release.solana.com/v1.18.0/install)"
-          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          sh -c "$(curl -sSfL https://release.solana.com/v1.18.18/install)"
+          echo "/home/runner/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
 
       - name: Generate Local Keypair
-        run: ~/.local/share/solana/install/active_release/bin/solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json
+        run: |
+          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
+          mkdir -p /home/runner/.config/solana
+          solana-keygen new --no-bip39-passphrase -o /home/runner/.config/solana/id.json
 
       - name: Install Anchor CLI
         run: |
-          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
           cargo install --git https://github.com/coral-xyz/anchor avm --locked --force && avm install 0.29.0 && avm use 0.29.0
 
       - name: Install Dependencies
@@ -108,5 +111,5 @@ jobs:
 
       - name: Run Anchor Tests
         run: |
-          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
           cd packages/contracts && anchor test
