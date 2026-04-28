@@ -1,10 +1,23 @@
 import * as anchor from "@coral-xyz/anchor";
 import { createMint, getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
+import fs from "fs";
+import os from "os";
+import path from "path";
 
 export async function setupFaucet(provider: anchor.AnchorProvider, decimals: number = 6) {
-    const payer = (provider.wallet as anchor.Wallet).payer;
+    const payer =
+        (provider.wallet as any)?.payer ??
+        anchor.web3.Keypair.fromSecretKey(
+            Uint8Array.from(
+                JSON.parse(
+                    fs.readFileSync(
+                        process.env.ANCHOR_WALLET ?? path.join(os.homedir(), ".config/solana/id.json"),
+                        "utf8",
+                    ),
+                ),
+            ),
+        );
     
-    // Create new LEX Token Mint
     const mint = await createMint(
         provider.connection,
         payer,
