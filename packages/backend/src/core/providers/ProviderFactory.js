@@ -2,7 +2,6 @@
 const OpenAIProvider = require('./OpenAIProvider');
 const GeminiProvider = require('./GeminiProvider');
 const AnthropicProvider = require('./AnthropicProvider');
-const NearAIProvider = require('./NearAIProvider');
 const BaseProvider = require('./BaseProvider');
 const { isPlaceholderApiKey, shouldUseMockAI, buildMockResponse } = require('./providerRuntime');
 const logger = require('../../utils/logger');
@@ -33,8 +32,7 @@ class ProviderFactory {
     const apiKeyMap = {
         openai: process.env.OPENAI_API_KEY,
         gemini: process.env.GEMINI_API_KEY,
-        anthropic: process.env.ANTHROPIC_API_KEY,
-        nearai: process.env.NEAR_AI_API_KEY
+        anthropic: process.env.ANTHROPIC_API_KEY
     };
 
     const config = {
@@ -62,7 +60,6 @@ class ProviderFactory {
       case 'openai': return new OpenAIProvider(config);
       case 'gemini': return new GeminiProvider(config);
       case 'anthropic': return new AnthropicProvider(config);
-      case 'nearai': return new NearAIProvider(config);
       default: return new MockProvider({ ...config, provider: providerType || 'mock', mockReason: 'unsupported_provider' });
     }
   }
