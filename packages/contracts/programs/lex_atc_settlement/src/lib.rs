@@ -266,6 +266,7 @@ fn parse_ed25519_ix(ix: &Instruction) -> Result<(Pubkey, Vec<u8>)> {
 pub struct VerifyZkProof<'info> {
     pub authority: Signer<'info>,
     #[account(address = IX_ID)]
+    /// CHECK: Instructions sysvar account is used to verify ed25519 signature
     pub ix_sysvar: AccountInfo<'info>,
 }
 
