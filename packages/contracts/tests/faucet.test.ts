@@ -2,9 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { setupFaucet } from "./faucet";
 import { assert } from "chai";
 
-const describeFn = process.env.CI ? describe.skip : describe;
-
-describeFn("LEX Token Faucet", () => {
+describe("LEX Token Faucet", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 

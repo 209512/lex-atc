@@ -4,6 +4,35 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
+async function waitForAccountInfo(
+    connection: anchor.web3.Connection,
+    pubkey: anchor.web3.PublicKey,
+    commitment: anchor.web3.Commitment,
+) {
+    for (let i = 0; i < 40; i++) {
+        const info = await connection.getAccountInfo(pubkey, commitment);
+        if (info) return;
+        await new Promise((r) => setTimeout(r, 500));
+    }
+    throw new Error(`Account not found: ${pubkey.toBase58()}`);
+}
+
+async function waitForTokenAccountBalance(
+    connection: anchor.web3.Connection,
+    pubkey: anchor.web3.PublicKey,
+    expectedAmount: string,
+    commitment: anchor.web3.Commitment,
+) {
+    for (let i = 0; i < 40; i++) {
+        try {
+            const bal = await connection.getTokenAccountBalance(pubkey, commitment);
+            if (bal.value.amount === expectedAmount) return;
+        } catch {}
+        await new Promise((r) => setTimeout(r, 500));
+    }
+    throw new Error(`Token balance not reached for: ${pubkey.toBase58()}`);
+}
+
 export async function setupFaucet(provider: anchor.AnchorProvider, decimals: number = 6) {
     const walletPayer = (provider.wallet as any)?.payer;
     const payer =
@@ -46,9 +75,8 @@ export async function setupFaucet(provider: anchor.AnchorProvider, decimals: num
                 anchor.utils.token.TOKEN_PROGRAM_ID,
                 anchor.utils.token.ASSOCIATED_PROGRAM_ID
             );
-            
-            // Wait for the ATA to be confirmed in the network before minting
-            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            await waitForAccountInfo(provider.connection, ata.address, "confirmed");
 
             await mintTo(
                 provider.connection,
@@ -60,6 +88,13 @@ export async function setupFaucet(provider: anchor.AnchorProvider, decimals: num
                 [],
                 undefined,
                 anchor.utils.token.TOKEN_PROGRAM_ID
+            );
+
+            await waitForTokenAccountBalance(
+                provider.connection,
+                ata.address,
+                String(amount),
+                "confirmed",
             );
             
             return ata.address;
