@@ -117,8 +117,8 @@ export const useATCStream = () => {
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
         });
-      } catch (err) {
-        console.error('Session ensure failed:', err);
+      } catch (err: any) {
+        useATCStore.getState().addLog(`SESSION ENSURE FAILED: ${err.message}`, 'error', 'SYSTEM');
       }
     };
 
@@ -138,7 +138,7 @@ export const useATCStream = () => {
           if (data.agents) dataBuffer.current.agents = data.agents;
           if (data.state) dataBuffer.current.state = data.state;
           if (!rafRef.current) rafRef.current = requestAnimationFrame(flushBuffer);
-        } catch (err) { console.error("Stream Parsing Error:", err); }
+        } catch (err: any) { useATCStore.getState().addLog(`STREAM PARSING ERROR: ${err.message}`, 'error', 'SYSTEM'); }
       };
       eventSource.onerror = () => {
         if (eventSource) eventSource.close();

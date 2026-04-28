@@ -8,7 +8,15 @@ import { useATCStore } from '@/store/atc';
 import { useUIStore } from '@/store/ui';
 
 export const SidebarControlPanel = () => {
-    const { state, triggerOverride, releaseLock, isAdminMuted, toggleAdminMute, playClick  } = useATCStore(useShallow(s => ({ state: s.state, triggerOverride: s.actions.triggerOverride, releaseLock: s.actions.releaseLock, isAdminMuted: s.isAdminMuted, toggleAdminMute: s.actions.toggleAdminMute, playClick: s.actions.playClick })));
+    const { state, triggerOverride, releaseLock, isAdminMuted, toggleAdminMute, playClick, addLog } = useATCStore(useShallow(s => ({ 
+        state: s.state, 
+        triggerOverride: s.actions.triggerOverride, 
+        releaseLock: s.actions.releaseLock, 
+        isAdminMuted: s.isAdminMuted, 
+        toggleAdminMute: s.actions.toggleAdminMute, 
+        playClick: s.actions.playClick,
+        addLog: s.actions.addLog
+    })));
     const { isDark, uiPreferences, updateUIPreferences  } = useUIStore(useShallow(s => ({ isDark: s.isDark, uiPreferences: s.uiPreferences, updateUIPreferences: s.updateUIPreferences })));
     
     const [isOverrideLoading, setIsOverrideLoading] = React.useState(false);
@@ -22,8 +30,8 @@ export const SidebarControlPanel = () => {
         setIsOverrideLoading(true);
         try {
             await triggerOverride();
-        } catch (e) {
-            console.error("Override Failed", e);
+        } catch (e: any) {
+            addLog(`OVERRIDE FAILED: ${e.message}`, 'error');
         } finally {
             setIsOverrideLoading(false);
         }
@@ -32,8 +40,8 @@ export const SidebarControlPanel = () => {
     const handleRelease = async () => {
         try {
             await releaseLock();
-        } catch (e) {
-            console.error("Release Failed", e);
+        } catch (e: any) {
+            addLog(`RELEASE FAILED: ${e.message}`, 'error');
         }
     };
 

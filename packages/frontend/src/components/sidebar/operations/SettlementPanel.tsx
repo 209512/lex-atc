@@ -116,7 +116,6 @@ export const SettlementPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
                   domain: 'settlement',
                   actionKey: 'SETTLEMENT_DISPUTE',
                 }).catch(e => {
-                    console.error('Dispute Action Failed', e);
                     addLog(`Dispute Action Failed: ${e.message}`, 'error', 'SYSTEM', { stage: 'failed', domain: 'settlement', actionKey: 'SETTLEMENT_DISPUTE' });
                 })}
                 className={getActionButtonClass(isDark, 'warn')}
@@ -137,7 +136,6 @@ export const SettlementPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
                   domain: 'settlement',
                   actionKey: 'SETTLEMENT_SLASH',
                 }).catch(e => {
-                    console.error('Slash Action Failed', e);
                     addLog(`Slash Action Failed: ${e.message}`, 'error', 'SYSTEM', { stage: 'failed', domain: 'settlement', actionKey: 'SETTLEMENT_SLASH' });
                 })}
                 className={getActionButtonClass(isDark, 'critical')}
