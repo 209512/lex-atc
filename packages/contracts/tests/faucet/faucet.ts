@@ -5,18 +5,21 @@ import os from "os";
 import path from "path";
 
 export async function setupFaucet(provider: anchor.AnchorProvider, decimals: number = 6) {
+    const walletPayer = (provider.wallet as any)?.payer;
     const payer =
-        (provider.wallet as any)?.payer ??
-        anchor.web3.Keypair.fromSecretKey(
-            Uint8Array.from(
-                JSON.parse(
-                    fs.readFileSync(
-                        process.env.ANCHOR_WALLET ?? path.join(os.homedir(), ".config/solana/id.json"),
-                        "utf8",
-                    ),
-                ),
-            ),
-        );
+        walletPayer?.publicKey && walletPayer?.secretKey
+            ? walletPayer
+            : anchor.web3.Keypair.fromSecretKey(
+                  Uint8Array.from(
+                      JSON.parse(
+                          fs.readFileSync(
+                              process.env.ANCHOR_WALLET ??
+                                  path.join(os.homedir(), ".config/solana/id.json"),
+                              "utf8",
+                          ),
+                      ),
+                  ),
+              );
     
     const mint = await createMint(
         provider.connection,
