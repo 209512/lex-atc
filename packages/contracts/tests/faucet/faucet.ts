@@ -47,6 +47,9 @@ export async function setupFaucet(provider: anchor.AnchorProvider, decimals: num
                 anchor.utils.token.ASSOCIATED_PROGRAM_ID
             );
             
+            // Wait for the ATA to be confirmed in the network before minting
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
             await mintTo(
                 provider.connection,
                 payer,
