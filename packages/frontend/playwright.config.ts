@@ -30,14 +30,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'pnpm --filter backend dev',
-      url: 'http://127.0.0.1:3000/api/doctor',
-      reuseExistingServer: true,
-      timeout: 120000,
-    },
-    {
-      command:
-        'VITE_API_URL=http://127.0.0.1:3000/api VITE_SSE_URL=http://127.0.0.1:3000/api/stream pnpm build && pnpm preview --port 5180 --strictPort',
+      command: 'pnpm build && pnpm preview --port 5180 --strictPort',
       url: process.env.VITE_APP_URL || 'http://127.0.0.1:5180',
       reuseExistingServer: true,
       timeout: 120000,

@@ -1,6 +1,6 @@
 import { test } from '@playwright/test';
 
-const apiBase = process.env.E2E_API_BASE_URL || 'http://127.0.0.1:3000/api';
+const apiBase = process.env.E2E_API_BASE_URL || '/api';
 
 test.setTimeout(120000);
 
@@ -32,21 +32,40 @@ const addBanner = async (page: any, text: string) => {
   await page.locator('#lex-e2e-banner').waitFor({ state: 'visible' });
 };
 
-const safePost = async (request: any, url: string, data?: any) => {
+const safePost = async (page: any, url: string, data?: any) => {
   console.log(`[E2E] Sending POST to ${url}`, data || '');
-  const response = await request.post(url, { data, timeout: 5000 }).catch((e: any) => {
-    console.error(`[safePost Error] POST ${url} failed:`, e.message);
-  });
-  if (response) {
-    if (!response.ok()) {
-      console.error(`[safePost Error] POST ${url} returned ${response.status()} ${response.statusText()}`);
-    } else {
-      console.log(`[E2E] POST ${url} SUCCESS:`, await response.json());
+  const result = await page.evaluate(async ({ url, data }) => {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: data === undefined ? undefined : JSON.stringify(data),
+      });
+      return {
+        ok: res.ok,
+        status: res.status,
+        statusText: res.statusText,
+        body: await res.text().catch(() => ''),
+      };
+    } catch (e: any) {
+      return { ok: false, status: 0, statusText: e?.message || 'FETCH_FAILED', body: '' };
     }
+  }, { url, data });
+
+  if (!result.ok) {
+    console.error(`[safePost Error] POST ${url} returned ${result.status} ${result.statusText}`);
+    return;
+  }
+
+  try {
+    console.log(`[E2E] POST ${url} SUCCESS:`, JSON.parse(result.body || '{}'));
+  } catch {
+    console.log(`[E2E] POST ${url} SUCCESS`);
   }
 };
 
-test.beforeEach(async ({ page, request }) => {
+test.beforeEach(async ({ page }) => {
   // Prevent the Joyride tour from showing up during video recording
   await page.addInitScript(() => {
     window.localStorage.setItem('lex-atc-tour-seen', 'true');
@@ -134,12 +153,18 @@ test.beforeEach(async ({ page, request }) => {
     });
   */
 
-  await safePost(request, `${apiBase}/release`);
-  await safePost(request, `${apiBase}/stop`, { enable: false });
-  await safePost(request, `${apiBase}/agents/scale`, { count: 2 });
-  await safePost(request, `${apiBase}/agents/priority-order`, { order: [] });
-  await page.waitForTimeout(250);
+  const mswReady = page.waitForEvent('console', {
+    predicate: (msg) => msg.text().includes('Mocking enabled.'),
+    timeout: 15000,
   });
+  await page.goto(apiBase.replace('/api', '/')).catch(() => {});
+  await mswReady.catch(() => {});
+  await safePost(page, `${apiBase}/release`);
+  await safePost(page, `${apiBase}/stop`, { enable: false });
+  await safePost(page, `${apiBase}/agents/scale`, { count: 2 });
+  await safePost(page, `${apiBase}/agents/priority-order`, { order: [] });
+  await page.waitForTimeout(250);
+});
 
 // Helper function to zoom out the radar using Playwright's mouse.wheel
 const zoomOutRadar = async (page: any) => {
@@ -168,9 +193,9 @@ test.describe('Lex-ATC Demo Scenarios', () => {
   });
 
   // Test 1: Peaceful Autonomous Competition
-  test('1_Peaceful_Nominal_State', async ({ page, request }) => {
+  test('1_Peaceful_Nominal_State', async ({ page }) => {
     // Before scenario, make sure we have 6 agents (so it looks crowded and busy)
-    await safePost(request, `${apiBase}/agents/scale`, { count: 6 });
+    await safePost(page, `${apiBase}/agents/scale`, { count: 6 });
     await page.waitForTimeout(2000);
 
     await page.goto('/');
@@ -180,16 +205,18 @@ test.describe('Lex-ATC Demo Scenarios', () => {
   });
 
   // Test 2: Tactical Command & Priority Bidding
-  test('2_Tactical_Command_Priority', async ({ page, request }) => {
-    await safePost(request, `${apiBase}/agents/scale`, { count: 6 });
+  test('2_Tactical_Command_Priority', async ({ page }) => {
+    await safePost(page, `${apiBase}/agents/scale`, { count: 6 });
     await page.goto('/');
     await zoomOutRadar(page);
     await addBanner(page, 'Scenario 2/4: Tactical Command & Priority');
     await page.waitForTimeout(5000);
     
     // Dynamically fetch agents to get a real UUID
-    const res = await request.get(`${apiBase}/agents/status`);
-    const data = await res.json();
+    const data = await page.evaluate(async (url: string) => {
+      const res = await fetch(url, { credentials: 'include' });
+      return res.json().catch(() => null);
+    }, `${apiBase}/agents/status`);
     const agents = Array.isArray(data) ? data : (data.agents || []);
     console.log(`[E2E] Fetched agents for Scenario 2:`, agents.length);
     if (agents.length > 0) {
@@ -202,7 +229,7 @@ test.describe('Lex-ATC Demo Scenarios', () => {
         await priorityBtn.click();
       } else {
         console.log(`[E2E] Priority button not visible, falling back to API`);
-        await safePost(request, `${apiBase}/agents/${targetId}/priority`, { enable: true });
+        await safePost(page, `${apiBase}/agents/${targetId}/priority`, { enable: true });
       }
     }
     await page.waitForTimeout(10000);
@@ -210,16 +237,18 @@ test.describe('Lex-ATC Demo Scenarios', () => {
 
 
   // Test 3: Smart Alerts & Automated Slashing
-  test('3_Escalation_Slashing', async ({ page, request }) => {
-    await safePost(request, `${apiBase}/agents/scale`, { count: 6 });
+  test('3_Escalation_Slashing', async ({ page }) => {
+    await safePost(page, `${apiBase}/agents/scale`, { count: 6 });
     await page.goto('/');
     await zoomOutRadar(page);
     await addBanner(page, 'Scenario 3/4: Escalation & Slashing');
     await page.waitForTimeout(5000);
     
     // Dynamically fetch agents to get a real UUID
-    const res = await request.get(`${apiBase}/agents/status`);
-    const data = await res.json();
+    const data = await page.evaluate(async (url: string) => {
+      const res = await fetch(url, { credentials: 'include' });
+      return res.json().catch(() => null);
+    }, `${apiBase}/agents/status`);
     const agents = Array.isArray(data) ? data : (data.agents || []);
     console.log(`[E2E] Fetched agents for Scenario 3:`, agents.length);
     
@@ -241,7 +270,7 @@ test.describe('Lex-ATC Demo Scenarios', () => {
         }
       } else {
         console.log(`[E2E] Slash button not visible, falling back to API`);
-        await safePost(request, `${apiBase}/settlement/slash`, { channelId: `channel:${targetId}`, actorUuid: targetId, reason: 'MALICIOUS_BEHAVIOR' });
+        await safePost(page, `${apiBase}/settlement/slash`, { channelId: `channel:${targetId}`, actorUuid: targetId, reason: 'MALICIOUS_BEHAVIOR' });
       }
     }
     
@@ -250,18 +279,18 @@ test.describe('Lex-ATC Demo Scenarios', () => {
   });
 
   // Test 4: Global Governance & Emergency Override
-  test('4_Emergency_Takeover', async ({ page, request }) => {
-    await safePost(request, `${apiBase}/agents/scale`, { count: 6 });
+  test('4_Emergency_Takeover', async ({ page }) => {
+    await safePost(page, `${apiBase}/agents/scale`, { count: 6 });
     await page.goto('/');
     await zoomOutRadar(page);
     await addBanner(page, 'Scenario 4/4: Emergency Override');
     await page.waitForTimeout(5000);
 
-    await safePost(request, `${apiBase}/override`);
+    await safePost(page, `${apiBase}/override`);
 
     await page.waitForTimeout(8000);
 
-    await safePost(request, `${apiBase}/release`);
+    await safePost(page, `${apiBase}/release`);
     await page.waitForTimeout(4000);
   });
 });
