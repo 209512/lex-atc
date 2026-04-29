@@ -2,7 +2,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import React, { useState, useEffect, useMemo } from 'react'; 
 import clsx from 'clsx';
-import { Cpu, Radio, AlertTriangle } from 'lucide-react';
+import { Cpu, Radio, AlertTriangle, Minus, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tooltip } from '@/components/common/Tooltip';
 import { useATCStore } from '@/store/atc';
@@ -21,10 +21,10 @@ export const SystemStats = () => {
     const minRequired = Math.max(1, priorityAgentsCount);
 
     useEffect(() => {
-        if (state.trafficIntensity !== undefined) {
-            setSliderValue(state.trafficIntensity);
+        if (state.activeAgentCount !== undefined) {
+            setSliderValue(state.activeAgentCount);
         }
-    }, [state.trafficIntensity]);
+    }, [state.activeAgentCount]);
 
     useEffect(() => {
         let cancelled = false;
@@ -46,19 +46,23 @@ export const SystemStats = () => {
         };
     }, []);
 
-    const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = parseInt(e.target.value);
-        if (val < minRequired) {
+    const applyScale = (val: number) => {
+        const clamped = Math.max(minRequired, Math.min(10, Math.floor(val)));
+        if (clamped < minRequired) {
             setIsBouncing(true);
             playAlert?.();
-            setSliderValue(minRequired);
-            setTrafficIntensity(minRequired);
             setTimeout(() => setIsBouncing(false), 300);
-        } else {
-            setSliderValue(val);
-            setTrafficIntensity(val);
         }
+        setSliderValue(clamped);
+        setTrafficIntensity(clamped);
     };
+
+    const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        applyScale(parseInt(e.target.value, 10));
+    };
+
+    const handleDecrement = () => applyScale(sliderValue - 1);
+    const handleIncrement = () => applyScale(sliderValue + 1);
 
     const toggleView = () => {
         playClick?.();
@@ -98,12 +102,12 @@ export const SystemStats = () => {
                     
                     {/* 4. n/10 수치 */}
                     <div className="shrink-0">
-                        <Tooltip content={`Active Slots: ${state.trafficIntensity} / 10`} position="bottom-left">
+                        <Tooltip content={`Active Agents: ${state.activeAgentCount ?? 0} / 10`} position="bottom-left">
                             <span className={clsx(
-                                "text-xs font-mono font-bold cursor-default", 
+                                "text-xs font-mono font-bold cursor-default",
                                 isDark ? "text-blue-400" : "text-blue-600"
                             )}>
-                                {state.trafficIntensity || 0}/10
+                                {state.activeAgentCount ?? 0}/10
                             </span>
                         </Tooltip>
                     </div>
@@ -111,16 +115,44 @@ export const SystemStats = () => {
 
                 {/* 슬라이더 제어 영역 */}
                 <div className="px-1 flex flex-col justify-center grow">
-                    <motion.div animate={isBouncing ? { x: [0, -4, 4, -2, 2, 0] } : {}} className="w-full">
-                        <input 
+                    <motion.div animate={isBouncing ? { x: [0, -4, 4, -2, 2, 0] } : {}} className="w-full flex items-center gap-1.5">
+                        <button
+                            onClick={handleDecrement}
+                            disabled={sliderValue <= minRequired}
+                            aria-label="에이전트 감소"
+                            className={clsx(
+                                "w-5 h-5 rounded flex items-center justify-center border shrink-0 transition-all",
+                                sliderValue <= minRequired
+                                    ? "opacity-30 cursor-not-allowed"
+                                    : "hover:scale-110 active:scale-95 cursor-pointer",
+                                isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-white border-slate-300 text-slate-600"
+                            )}
+                        >
+                            <Minus size={10} />
+                        </button>
+                        <input
                             type="range" min="1" max="10" step="1"
                             value={sliderValue}
                             onChange={handleSliderChange}
                             className={clsx(
-                                "w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-blue-500 transition-all",
+                                "flex-1 h-1.5 rounded-lg appearance-none cursor-pointer accent-blue-500 transition-all",
                                 isDark ? "bg-gray-800" : "bg-gray-200"
                             )}
                         />
+                        <button
+                            onClick={handleIncrement}
+                            disabled={sliderValue >= 10}
+                            aria-label="에이전트 증가"
+                            className={clsx(
+                                "w-5 h-5 rounded flex items-center justify-center border shrink-0 transition-all",
+                                sliderValue >= 10
+                                    ? "opacity-30 cursor-not-allowed"
+                                    : "hover:scale-110 active:scale-95 cursor-pointer",
+                                isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-white border-slate-300 text-slate-600"
+                            )}
+                        >
+                            <Plus size={10} />
+                        </button>
                     </motion.div>
                     <div className={clsx("flex justify-between text-[8px] font-mono mt-1 opacity-50 shrink-0 whitespace-nowrap", isDark ? "text-gray-400" : "text-slate-500")}>
                         <span>MIN: 1</span>

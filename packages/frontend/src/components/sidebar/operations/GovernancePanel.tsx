@@ -25,6 +25,7 @@ export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
 
   const proposals = useMemo(
     () => ((state.governance?.proposals || []) as any[])
+      .filter((proposal) => Boolean(proposal?.id || proposal?.proposalId))
       .filter((proposal) => ['PENDING', 'READY'].includes(String(proposal.status || '')))
       .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
       .slice(0, 5),
@@ -33,6 +34,7 @@ export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
 
   const proposalHistory = useMemo(
     () => [...((state.governance?.proposals || []) as any[])]
+      .filter((proposal) => Boolean(proposal?.id || proposal?.proposalId))
       .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
       .slice(0, 8),
     [state.governance?.proposals]
@@ -185,7 +187,7 @@ export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
         </div>
       )}
       {proposals.map((proposal: any) => {
-        const id = String(proposal.id);
+        const id = String(proposal.id ?? proposal.proposalId);
         const approveKey = `approve:${id}`;
         const executeKey = `execute:${id}`;
         const cancelKey = `cancel:${id}`;

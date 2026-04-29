@@ -54,3 +54,18 @@ export const SseEventSchema = z.object({
   agents: z.array(AgentSchema).optional()
 }).passthrough();
 
+// Settlement dispute request schema
+// channelId OR actorUuid must be provided (actorUuid resolves to channel:{actorUuid})
+export const DisputeSchema = z.object({
+  channelId: z.string().optional().default(''),
+  actorUuid: z.string().optional(),
+  openedBy: z.string().optional(),
+  targetNonce: z.number().int().nonnegative().optional().default(0),
+  reason: z.string().optional().default('DISPUTE'),
+}).refine(
+  (data) => !!(data.channelId || data.actorUuid),
+  { message: 'Must provide either channelId or actorUuid', path: ['channelId'] }
+);
+
+export type DisputeInput = z.infer<typeof DisputeSchema>;
+

@@ -74,29 +74,19 @@ export const createATCCoreSlice: StateCreator<ATCStore, [], [], ATCCoreSlice> = 
     const state = get().state;
     const minRequired = state.priorityAgents?.length || 1;
     const finalValue = Math.max(minRequired, Math.floor(val));
+    const currentCount = state.activeAgentCount ?? 0;
 
-    if (finalValue !== state.trafficIntensity) {
+    if (finalValue !== currentCount) {
       get().playClick();
-      const prevIntensity = state.trafficIntensity;
-      get().markAction('', 'trafficIntensity', finalValue);
-      get().setState((prev) => ({ ...prev, trafficIntensity: finalValue }));
+      get().markAction('', 'activeAgentCount', finalValue);
+      get().setState((prev) => ({ ...prev, activeAgentCount: finalValue }));
 
       atcApi.scaleAgents(finalValue)
-        .then((res) => {
-          if (res.agents) {
-            get().setAgents(res.agents);
-            get().markAction('', 'trafficIntensity', res.agents.length);
-            get().setState((prev) => ({ ...prev, trafficIntensity: res.agents.length }));
-          } else {
-            get().markAction('', 'trafficIntensity', finalValue);
-            get().setState((prev) => ({ ...prev, trafficIntensity: finalValue }));
-          }
-        })
         .catch((err) => {
           get().playAlert();
           get().addLog(`SCALE_FAILED: ${err.message}`, 'error');
-          get().markAction('', 'trafficIntensity', prevIntensity);
-          get().setState((prev) => ({ ...prev, trafficIntensity: prevIntensity }));
+          get().markAction('', 'activeAgentCount', currentCount);
+          get().setState((prev) => ({ ...prev, activeAgentCount: currentCount }));
         });
     }
   },
