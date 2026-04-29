@@ -28,16 +28,33 @@ const router = createBrowserRouter([
   },
 ])
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <ATCProvider>
-      <RouterProvider
-        router={router}
-        future={{
-          v7_startTransition: true,
-          v7_relativeSplatPath: true,
-        }}
-      />
-    </ATCProvider>
-  </StrictMode>,
-)
+async function main() {
+  // Start MSW in both development and production for standalone / backend-free deployment.
+  // The service worker file is served from /mockServiceWorker.js (public/).
+  const { worker } = await import('@/mocks/browser')
+  const { startSimulation } = await import('@/mocks/db')
+
+  await worker.start({
+    onUnhandledRequest: 'warn',
+    serviceWorker: { url: '/mockServiceWorker.js' },
+  })
+
+  // Kick off the in-browser agent simulation loop
+  startSimulation()
+
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <ATCProvider>
+        <RouterProvider
+          router={router}
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        />
+      </ATCProvider>
+    </StrictMode>,
+  )
+}
+
+main()
