@@ -65,6 +65,24 @@ test('standalone deployment works without backend', async ({ page }) => {
   await expect(page.getByTestId('agent-AGT-001')).toBeVisible({ timeout: 15000 });
   await expect(page.locator('canvas').first()).toBeVisible({ timeout: 15000 });
 
+  await page.getByTestId('btn-system-settings').click();
+  await expect(page.getByText('SYSTEM_CONFIG')).toBeVisible({ timeout: 15000 });
+  await page.getByTestId('select-riskvector-display-mode').selectOption('compact');
+  await page.keyboard.press('Escape').catch(() => {});
+  await page.mouse.click(10, 10);
+
+  const displayMode = await page.evaluate(() => {
+    const raw = window.localStorage.getItem('lex-atc.ui-state.v3');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.state?.uiPreferences?.riskVector?.displayMode ?? null;
+  });
+  expect(displayMode).toBe('compact');
+
+  await page.getByTestId('agent-AGT-001').click();
+  await expect(page.getByTestId('risk-vector-bars')).toBeVisible({ timeout: 15000 });
+  await expect(page.getByTestId('risk-axis-T')).toBeVisible({ timeout: 15000 });
+
   await expect(page.getByText('3/10')).toBeVisible({ timeout: 15000 });
   await page.getByLabel('에이전트 증가').click();
   await expect(page.getByText('4/10')).toBeVisible({ timeout: 15000 });
