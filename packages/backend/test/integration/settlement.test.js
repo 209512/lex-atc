@@ -1,5 +1,6 @@
 const axios = require('axios');
 jest.mock('axios');
+const { SettlementSlashHeatmapMetaSchema } = require('@lex-atc/shared');
 
 describe('L3 Settlement Layer', () => {
   const createAtcAndEngine = async () => {
@@ -33,6 +34,10 @@ describe('L3 Settlement Layer', () => {
       treasury: { systemVault: { address: treasuryAddr, totalFeesCollected: 0, totalRewardsDistributed: 0 } },
       state: { shards: { 'RG-0': { shardId: 'RG-0', epoch: 0, resourceId: 'traffic-control-lock:RG-0:e0' } } },
       getShardIdForAgent: () => 'RG-0',
+      addLog: jest.fn(),
+      agentManager: {
+        terminateAgent: jest.fn().mockResolvedValue(true),
+      },
       sequencer: {
         async nextGlobalSeq() { const v = g; g += 1; return v; },
         async nextShardSeq(shardId) { return nextShard(String(shardId)); }
@@ -165,6 +170,21 @@ describe('L3 Settlement Layer', () => {
     const actions = events.map(e => e.action);
     expect(actions).toContain('DISPUTE_OPEN_FAILED');
     expect(actions).toContain('SETTLEMENT_SLASH');
+  });
+
+  test('Slash emits UI heatmap log meta and triggers termination', async () => {
+    const { atc, engine, agentUuid } = await createAtcAndEngine();
+    const res = await engine.slash({ channelId: 'channel:agent-1', actorUuid: agentUuid, reason: 'E2E_META' });
+    expect(res.ok).toBe(true);
+    expect(atc.addLog).toHaveBeenCalled();
+    const call = atc.addLog.mock.calls[0];
+    expect(call[2]).toBe('critical');
+    const meta = SettlementSlashHeatmapMetaSchema.parse(call[3]);
+    expect(meta.metrics.conflictRate).toBe(100);
+    expect(meta.metrics.balanceDrain).toBe(100);
+    expect(meta.metrics.anomalyScore).toBe(1.0);
+    expect(meta.arweaveTxId).toContain('mock-txid');
+    expect(atc.agentManager.terminateAgent).toHaveBeenCalledWith(agentUuid, true);
   });
 
   test('Missing deterministic keys blocks settlement snapshot creation', async () => {

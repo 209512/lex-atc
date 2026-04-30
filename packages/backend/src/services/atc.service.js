@@ -154,20 +154,23 @@ class ATCService extends EventEmitter {
             
             this.isReady = true;
             logger.info('✅ [ATC-Service] Successfully initialized.');
-        } catch (err) {
-            logger.error('❌ [ATC-Service] Initialization failed:', err);
-        }
-        
-        // Ensure intervals are tracked to prevent open handles during tests
-        if (this._stateEmitInterval) clearInterval(this._stateEmitInterval);
-        
-        this._stateEmitInterval = setInterval(() => {
-            if (this.agents.size > 0) {
-                this.emitState(); 
+            if (this._stateEmitInterval) clearInterval(this._stateEmitInterval);
+            this._stateEmitInterval = setInterval(() => {
+                if (this.agents.size > 0) {
+                    this.emitState();
+                }
+            }, 100);
+            if (this._stateEmitInterval.unref) {
+                this._stateEmitInterval.unref();
             }
-        }, 100);
-        if (this._stateEmitInterval.unref) {
-            this._stateEmitInterval.unref();
+        } catch (err) {
+            this.isReady = false;
+            if (this._stateEmitInterval) {
+                clearInterval(this._stateEmitInterval);
+                this._stateEmitInterval = null;
+            }
+            logger.error('❌ [ATC-Service] Initialization failed:', err);
+            throw err;
         }
     }
 
