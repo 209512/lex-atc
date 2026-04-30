@@ -60,6 +60,14 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Validate Production Env Invariants
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Validate Production Env Invariants (Forbidden Vars)
+        run: NODE_ENV=production node packages/backend/scripts/validate-prod-env.js
+
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
