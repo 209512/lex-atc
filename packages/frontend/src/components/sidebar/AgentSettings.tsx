@@ -70,6 +70,23 @@ export const AgentSettings: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         </label>
                     </div>
 
+                    <div className={clsx("col-span-2 p-3 rounded-lg border", isDark ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
+                        <label className="flex items-center justify-between cursor-pointer group">
+                            <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 opacity-70 group-hover:opacity-100">
+                                <Activity size={12} /> RISK_VECTOR_HUD
+                            </span>
+                            <select
+                                value={uiPreferences.riskVector?.displayMode ?? 'full'}
+                                onChange={(e) => updateUIPreferences({ riskVector: { ...(uiPreferences.riskVector || {}), displayMode: e.target.value as any } })}
+                                className={clsx("bg-transparent border outline-none text-[10px] p-1 rounded", isDark ? "border-gray-700 text-white" : "border-slate-300 text-black")}
+                                data-testid="select-riskvector-display-mode"
+                            >
+                                <option value="full">Full (8D)</option>
+                                <option value="compact">Compact (4D)</option>
+                            </select>
+                        </label>
+                    </div>
+
                     {/* Accessibility & Visual Settings */}
                     <div className="grid grid-cols-2 gap-3 mb-4">
                         <div className={clsx("p-3 rounded-lg border", isDark ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>

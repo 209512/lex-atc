@@ -5,10 +5,10 @@ import { useATCStore } from '@/store/atc';
 import { useShallow } from 'zustand/react/shallow';
 import { atcApi } from '@/contexts/atcApi';
 import { governanceHelp, governancePresets, proposalActionHelp, proposalActions } from '@/components/sidebar/opsConsoleConfig';
-import { getSectionCardClass, getRowCardClass, getActionButtonClass, Spinner, getInputClass, getHelpPillClass, CommonPanelProps } from './opsUiHelpers';
+import { getSectionCardClass, getRowCardClass, getActionButtonClass, Spinner, getInputClass, getHelpPillClass, CommonPanelProps, ActionStatusBadge } from './opsUiHelpers';
 import { buildProposalParams } from './opsUtils';
 
-export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, runAction }) => {
+export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, status, runAction }) => {
   const state = useATCStore(useShallow(s => s.state));
   const { addLog, playAlert } = useATCStore(useShallow(s => ({
     addLog: s.addLog,
@@ -179,7 +179,10 @@ export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
         onClick={createProposal}
         className={getActionButtonClass(isDark)}
       >
-        {busy['proposal-create'] ? <Spinner /> : 'Create Proposal'}
+        <span className="inline-flex items-center gap-1">
+          {busy['proposal-create'] ? <Spinner /> : 'Create Proposal'}
+          <ActionStatusBadge isDark={isDark} status={status['proposal-create']} />
+        </span>
       </button>
       {proposals.length === 0 && (
         <div className={clsx('text-[10px] font-mono opacity-60', isDark ? 'text-gray-500' : 'text-slate-500')}>
@@ -228,7 +231,10 @@ export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
                 })}
                 className={getActionButtonClass(isDark, 'neutral')}
               >
-                {busy[approveKey] ? <Spinner /> : 'Approve'}
+                <span className="inline-flex items-center gap-1">
+                  {busy[approveKey] ? <Spinner /> : 'Approve'}
+                  <ActionStatusBadge isDark={isDark} status={status[approveKey]} />
+                </span>
               </button>
               <button
                 data-testid={`gov-execute-${id}`}
@@ -248,7 +254,10 @@ export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
                 })}
                 className={getActionButtonClass(isDark, 'warn')}
               >
-                {busy[executeKey] ? <Spinner /> : 'Execute'}
+                <span className="inline-flex items-center gap-1">
+                  {busy[executeKey] ? <Spinner /> : 'Execute'}
+                  <ActionStatusBadge isDark={isDark} status={status[executeKey]} />
+                </span>
               </button>
               <button
                 data-testid={`gov-cancel-${id}`}
@@ -268,7 +277,10 @@ export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
                 })}
                 className={getActionButtonClass(isDark, 'critical')}
               >
-                {busy[cancelKey] ? <Spinner /> : 'Cancel'}
+                <span className="inline-flex items-center gap-1">
+                  {busy[cancelKey] ? <Spinner /> : 'Cancel'}
+                  <ActionStatusBadge isDark={isDark} status={status[cancelKey]} />
+                </span>
               </button>
             </div>
           </div>

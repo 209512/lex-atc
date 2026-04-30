@@ -19,6 +19,7 @@ export interface FloatingPanelPreference {
 export type ViewMode = 'executive' | 'operator' | 'focus';
 export type ThemeType = 'dark' | 'light' | 'high-contrast';
 export type FontSizeMode = 'small' | 'medium' | 'large';
+export type RiskVectorDisplayMode = 'full' | 'compact';
 
 export interface UIPreferences {
   panels: Record<FloatingPanelId, FloatingPanelPreference>;
@@ -28,6 +29,9 @@ export interface UIPreferences {
   fontSizeMode: FontSizeMode;
   reduceMotion: boolean;
   limitFps: boolean;
+  riskVector: {
+    displayMode: RiskVectorDisplayMode;
+  };
   queue: {
     activeTab: QueuePanelTab;
   };
@@ -85,6 +89,9 @@ export const createDefaultUIPreferences = (): UIPreferences => ({
   fontSizeMode: 'medium',
   reduceMotion: false,
   limitFps: false,
+  riskVector: {
+    displayMode: 'full',
+  },
   queue: {
     activeTab: 'all',
   },

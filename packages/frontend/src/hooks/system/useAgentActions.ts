@@ -111,11 +111,23 @@ export const useAgentActions = ({
         
         atcApi.transferLock(uuid)
             .then((result: any) => {
+                const accepted = Boolean(result?.accepted ?? result?.scheduled ?? result?.proposalId);
+                const autoExecuted = result?.autoExecuted === true;
+                const executedOk = result?.executedOk ?? (result?.executed ? result.executed.success === true : null);
+
+                if (accepted && !autoExecuted) {
+                    addLog(`⚡ LOCK TRANSFER PROPOSAL CREATED FOR ${label}`, 'policy', 'SYSTEM', { stage: LOG_STAGES.ACCEPTED, domain: LOG_DOMAINS.GOVERNANCE, actionKey: LOG_ACTIONS.TRANSFER_LOCK });
+                    return;
+                }
+
+                if (accepted && autoExecuted && (result?.success === false || executedOk === false || String(result?.status || '') === 'FAILED')) {
+                    addLog(`⚠️ TRANSFER EXECUTION FAILED (proposal accepted): ${String(result?.error || result?.executed?.error || 'TRANSFER_FAILED')}`, 'error', uuid, { stage: LOG_STAGES.FAILED, domain: LOG_DOMAINS.GOVERNANCE, actionKey: LOG_ACTIONS.TRANSFER_LOCK });
+                    setState((prev: any) => ({ ...prev, forcedCandidate: null }));
+                    return;
+                }
+
                 if (result?.success === false || result?.executed?.success === false) {
                     throw new Error(String(result?.error || result?.executed?.error || 'TRANSFER_FAILED'));
-                }
-                if (result?.scheduled && !result?.autoExecuted) {
-                    addLog(`⚡ LOCK TRANSFER PROPOSAL CREATED FOR ${label}`, 'policy', 'SYSTEM', { stage: LOG_STAGES.ACCEPTED, domain: LOG_DOMAINS.GOVERNANCE, actionKey: LOG_ACTIONS.TRANSFER_LOCK });
                 }
             })
             .catch(err => {

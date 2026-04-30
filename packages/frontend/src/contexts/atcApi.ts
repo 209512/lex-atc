@@ -5,8 +5,6 @@ export const getApiBaseUrl = () => {
     return frontendConfig.api.baseUrl;
 };
 
-const BASE_URL = getApiBaseUrl();
-
 interface RequestOptions extends RequestInit {
   timeout?: number;
   retries?: number;
@@ -15,48 +13,45 @@ interface RequestOptions extends RequestInit {
 
 const request = async (url: string, options: RequestOptions = {}) => {
   const { 
-    timeout = 5000, 
-    retries = 3, 
-    backoff = 300, 
+    timeout = frontendConfig.api.timeoutMs, 
+    retries = frontendConfig.api.retries, 
+    backoff = frontendConfig.api.backoffMs, 
     ...fetchOptions 
   } = options;
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  let lastError: Error | null = null;
 
-  try {
-    let lastError: Error | null = null;
-    
-    for (let i = 0; i < retries; i++) {
-      try {
-        const response = await fetch(`${BASE_URL}${url}`, {
-          ...fetchOptions,
-          credentials: 'include',
-          headers: { 
-            'Content-Type': 'application/json', 
-            ...fetchOptions.headers 
-          },
-          signal: controller.signal,
-        });
+  for (let i = 0; i < retries; i++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(`${getApiBaseUrl()}${url}`, {
+        ...fetchOptions,
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...fetchOptions.headers
+        },
+        signal: controller.signal,
+      });
 
-        if (!response.ok) {
-          if (response.status >= 400 && response.status < 500) {
-            throw new Error(`API_CLIENT_ERROR: ${response.status}`);
-          }
-          throw new Error(`API_SERVER_ERROR: ${response.status}`);
+      if (!response.ok) {
+        if (response.status >= 400 && response.status < 500) {
+          throw new Error(`API_CLIENT_ERROR: ${response.status}`);
         }
-
-        return await response.json().catch(() => ({}));
-      } catch (err: any) {
-        lastError = err;
-        if (err.name === 'AbortError') break; 
-        await new Promise(resolve => setTimeout(resolve, backoff * Math.pow(2, i)));
+        throw new Error(`API_SERVER_ERROR: ${response.status}`);
       }
+
+      return await response.json().catch(() => ({}));
+    } catch (err: any) {
+      lastError = err;
+      if (err.name === 'AbortError') break;
+      await new Promise(resolve => setTimeout(resolve, backoff * Math.pow(2, i)));
+    } finally {
+      clearTimeout(timeoutId);
     }
-    throw lastError;
-  } finally {
-    clearTimeout(timeoutId);
   }
+  throw lastError;
 };
 
 export const atcApi = {

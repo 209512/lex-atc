@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import { Outlet } from 'react-router-dom';
 import { useUIStore } from '@/store/ui';
 import { SidebarContainer } from '@/components/layout/SidebarContainer';
+import { frontendConfig } from '@/config/runtime';
 
 const App = () => {
   const { isDark, uiPreferences } = useUIStore(useShallow(s => ({ isDark: s.isDark, uiPreferences: s.uiPreferences })));
@@ -29,6 +30,14 @@ const App = () => {
       isDark ? "bg-[#05090a] text-gray-300" : "bg-[#f1f5f9] text-slate-800",
       uiPreferences.fontSizeMode === 'large' ? 'text-lg' : uiPreferences.fontSizeMode === 'small' ? 'text-sm' : 'text-base'
     )}>
+      {frontendConfig.deployment.mode === 'standalone' && (
+        <div className={clsx(
+          'pointer-events-none absolute top-3 right-3 z-[60] px-2 py-1 rounded border font-mono text-[10px] tracking-[0.16em] uppercase',
+          isDark ? 'border-amber-400/30 bg-amber-400/10 text-amber-200' : 'border-amber-300 bg-amber-50 text-amber-800',
+        )}>
+          Simulation Mode
+        </div>
+      )}
       <div className="flex-1 min-w-0 min-h-0 h-full relative overflow-hidden">
         <Outlet />
       </div>

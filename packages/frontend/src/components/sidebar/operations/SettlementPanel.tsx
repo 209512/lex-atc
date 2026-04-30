@@ -6,11 +6,12 @@ import { useShallow } from 'zustand/react/shallow';
 import { atcApi } from '@/contexts/atcApi';
 import { formatId } from '@/utils/agentIdentity';
 import { settlementHelp, settlementPresets } from '@/components/sidebar/opsConsoleConfig';
-import { getSectionCardClass, getRowCardClass, getActionButtonClass, Spinner, getInputClass, getHelpPillClass, CommonPanelProps } from './opsUiHelpers';
+import { getSectionCardClass, getRowCardClass, getActionButtonClass, Spinner, getInputClass, getHelpPillClass, CommonPanelProps, ActionStatusBadge } from './opsUiHelpers';
 
-export const SettlementPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runAction }) => {
+export const SettlementPanel: React.FC<CommonPanelProps> = ({ isDark, busy, status, runAction }) => {
   const state = useATCStore(useShallow(s => s.state));
   const addLog = useATCStore(s => s.addLog);
+  const [manualChannelId, setManualChannelId] = useState('');
   const [settlementActorId, setSettlementActorId] = useState('');
   const [settlementReason, setSettlementReason] = useState('OPS_PANEL_SETTLEMENT');
   const [settlementTargetNonce, setSettlementTargetNonce] = useState('');
@@ -61,6 +62,14 @@ export const SettlementPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
       <div className="grid grid-cols-3 gap-2">
         <input
           type="text"
+          value={manualChannelId}
+          onChange={(e) => setManualChannelId(e.target.value)}
+          placeholder="Channel ID"
+          className={getInputClass(isDark)}
+          data-testid="settle-channel-id"
+        />
+        <input
+          type="text"
           value={settlementActorId}
           onChange={(e) => setSettlementActorId(e.target.value)}
           placeholder="Actor ID"
@@ -72,12 +81,62 @@ export const SettlementPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
           placeholder="Target Nonce"
           className={getInputClass(isDark)}
         />
+      </div>
+      <div className="grid grid-cols-1 gap-2">
         <input
           value={settlementReason}
           onChange={(e) => setSettlementReason(e.target.value.toUpperCase())}
           placeholder="Reason"
           className={getInputClass(isDark)}
         />
+      </div>
+      <div className="flex items-center gap-1.5">
+        <button
+          data-testid="settle-dispute-manual"
+          disabled={busy['dispute:manual'] || !manualChannelId.trim()}
+          onClick={() => runAction({
+            key: 'dispute:manual',
+            execute: () => atcApi.openDispute(manualChannelId.trim(), settlementActorId || undefined, settlementTargetNonce ? Number(settlementTargetNonce) : undefined, settlementReason || 'OPS_PANEL_DISPUTE'),
+            errorLabel: 'SETTLEMENT_DISPUTE_FAILED',
+            requestMessage: `SETTLEMENT_DISPUTE_REQUESTED ${manualChannelId.trim()}`,
+            successMessage: `SETTLEMENT_DISPUTE_OPENED ${manualChannelId.trim()}`,
+            successType: 'warn',
+            successStage: 'executed',
+            domain: 'settlement',
+            actionKey: 'SETTLEMENT_DISPUTE',
+          }).catch(e => {
+            addLog(`Dispute Action Failed: ${e.message}`, 'error', 'SYSTEM', { stage: 'failed', domain: 'settlement', actionKey: 'SETTLEMENT_DISPUTE' });
+          })}
+          className={getActionButtonClass(isDark, 'warn')}
+        >
+          <span className="inline-flex items-center gap-1">
+            {busy['dispute:manual'] ? <Spinner /> : 'Dispute'}
+            <ActionStatusBadge isDark={isDark} status={status['dispute:manual']} />
+          </span>
+        </button>
+        <button
+          data-testid="settle-slash-manual"
+          disabled={busy['slash:manual'] || !manualChannelId.trim()}
+          onClick={() => runAction({
+            key: 'slash:manual',
+            execute: () => atcApi.slashSettlement(manualChannelId.trim(), settlementActorId || undefined, settlementReason || 'OPS_PANEL_SLASH'),
+            errorLabel: 'SETTLEMENT_SLASH_FAILED',
+            requestMessage: `SETTLEMENT_SLASH_REQUESTED ${manualChannelId.trim()}`,
+            successMessage: `SETTLEMENT_SLASH_RECORDED ${manualChannelId.trim()}`,
+            successType: 'critical',
+            successStage: 'executed',
+            domain: 'settlement',
+            actionKey: 'SETTLEMENT_SLASH',
+          }).catch(e => {
+            addLog(`Slash Action Failed: ${e.message}`, 'error', 'SYSTEM', { stage: 'failed', domain: 'settlement', actionKey: 'SETTLEMENT_SLASH' });
+          })}
+          className={getActionButtonClass(isDark, 'critical')}
+        >
+          <span className="inline-flex items-center gap-1">
+            {busy['slash:manual'] ? <Spinner /> : 'Slash'}
+            <ActionStatusBadge isDark={isDark} status={status['slash:manual']} />
+          </span>
+        </button>
       </div>
       {channels.length === 0 && (
         <div className={clsx('text-[10px] font-mono opacity-60', isDark ? 'text-gray-500' : 'text-slate-500')}>
@@ -120,7 +179,10 @@ export const SettlementPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
                 })}
                 className={getActionButtonClass(isDark, 'warn')}
               >
-                {busy[disputeKey] ? <Spinner /> : 'Dispute'}
+                <span className="inline-flex items-center gap-1">
+                  {busy[disputeKey] ? <Spinner /> : 'Dispute'}
+                  <ActionStatusBadge isDark={isDark} status={status[disputeKey]} />
+                </span>
               </button>
               <button
                 data-testid={`settle-slash-${channelId}`}
@@ -140,7 +202,10 @@ export const SettlementPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runA
                 })}
                 className={getActionButtonClass(isDark, 'critical')}
               >
-                {busy[slashKey] ? <Spinner /> : 'Slash'}
+                <span className="inline-flex items-center gap-1">
+                  {busy[slashKey] ? <Spinner /> : 'Slash'}
+                  <ActionStatusBadge isDark={isDark} status={status[slashKey]} />
+                </span>
               </button>
             </div>
           </div>

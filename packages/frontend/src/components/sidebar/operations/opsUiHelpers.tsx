@@ -33,6 +33,30 @@ export const getHelpPillClass = (isDark: boolean) => clsx(
 );
 
 export type BusyMap = Record<string, boolean>;
+export type ActionStatusMap = Record<string, ActionStatus>;
+
+export type ActionStatus = {
+  state: 'accepted' | 'executed' | 'failed';
+  at: number;
+};
+
+export const ActionStatusBadge: React.FC<{ isDark: boolean; status?: ActionStatus }> = ({ isDark, status }) => {
+  if (!status) return null;
+  const label = status.state === 'accepted' ? 'PROPOSED' : (status.state === 'executed' ? 'OK' : 'FAILED');
+  return (
+    <span
+      className={clsx(
+        'px-1.5 py-0.5 rounded border text-[9px] font-mono font-bold uppercase tracking-[0.12em]',
+        status.state === 'accepted' && (isDark ? 'border-blue-400/30 bg-blue-400/10 text-blue-200' : 'border-blue-300 bg-blue-50 text-blue-700'),
+        status.state === 'executed' && (isDark ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-emerald-300 bg-emerald-50 text-emerald-800'),
+        status.state === 'failed' && (isDark ? 'border-red-400/30 bg-red-400/10 text-red-200' : 'border-red-300 bg-red-50 text-red-800'),
+      )}
+      data-testid={`ops-status-${status.state}`}
+    >
+      {label}
+    </span>
+  );
+};
 
 export type RunActionArgs = {
   key: string;
@@ -50,4 +74,5 @@ export interface CommonPanelProps {
   isDark: boolean;
   busy: BusyMap;
   runAction: (args: RunActionArgs) => Promise<any>;
+  status: ActionStatusMap;
 }

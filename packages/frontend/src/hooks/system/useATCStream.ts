@@ -5,9 +5,6 @@ import { useATCStore } from '@/store/atc';
 import { formatId } from '@/utils/agentIdentity';
 import { frontendConfig } from '@/config/runtime';
 
-const STREAM_URL = frontendConfig.sse.streamUrl;
-
-
 const getSpiralPos = (i: number): [number, number, number] => {
   const r = 2.5 * Math.sqrt(i + 1);
   const theta = i * 137.508 * (Math.PI / 180);
@@ -32,6 +29,7 @@ export const useATCStream = () => {
 
     if (bufferedAgents) {
       setAgents((prevAgents) => {
+        const prevMap = new Map(prevAgents.map((a) => [String(a.id), a]));
         return bufferedAgents.map((agent: any, i: number) => {
           const originalId = String(agent.id);
           
@@ -55,7 +53,7 @@ export const useATCStream = () => {
           }
 
           const rawPos = finalAgent.position;
-          const prevAgent = prevAgents.find(a => a.id === originalId);
+          const prevAgent = prevMap.get(originalId);
           const validPosition = (Array.isArray(rawPos) && rawPos.length === 3) 
             ? (rawPos as [number, number, number]) 
             : (prevAgent?.position || getSpiralPos(i)); 
@@ -81,7 +79,7 @@ export const useATCStream = () => {
           id: log.id || `S-${log.timestamp}`
         }));
 
-        const MAX_LOGS = 1000; 
+        const MAX_LOGS = frontendConfig.sse.maxLogs; 
         
         const combined = [...prev.logs, ...newServerLogs];
         const uniqueMap = new Map();
@@ -127,7 +125,7 @@ export const useATCStream = () => {
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
 
       await ensureSession();
-      eventSource = new EventSource(STREAM_URL, { withCredentials: true });
+      eventSource = new EventSource(frontendConfig.sse.streamUrl, { withCredentials: true });
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -142,7 +140,7 @@ export const useATCStream = () => {
       };
       eventSource.onerror = () => {
         if (eventSource) eventSource.close();
-        reconnectTimeoutRef.current = setTimeout(() => { connect(); }, 3000);
+        reconnectTimeoutRef.current = setTimeout(() => { connect(); }, frontendConfig.sse.reconnectMs);
       };
     };
     connect();
@@ -157,12 +155,12 @@ export const useATCStream = () => {
       markActionStore(agentId, field, value, isDelete);
       const originalId = String(agentId);
       if (isDelete) {
-          deletedIds.current.set(originalId, Date.now() + 5000);
+          deletedIds.current.set(originalId, Date.now() + frontendConfig.sse.fieldLockMs);
           fieldLocks.current.delete(originalId);
           setState(prev => ({ ...prev, priorityAgents: (prev.priorityAgents || []).filter(id => id !== originalId) }));
       } else if (field) {
           if (!fieldLocks.current.has(originalId)) fieldLocks.current.set(originalId, new Map());
-          fieldLocks.current.get(originalId)?.set(field, { value, expiry: Date.now() + 5000 });
+          fieldLocks.current.get(originalId)?.set(field, { value, expiry: Date.now() + frontendConfig.sse.fieldLockMs });
       }
   }, [setState, markActionStore]);
 
