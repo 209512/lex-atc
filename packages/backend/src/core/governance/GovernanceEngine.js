@@ -120,7 +120,7 @@ class GovernanceEngine {
             
             // If execution failed, return success: false
             if (!executed.success) {
-                return { success: false, proposalId: id, status: this.proposals.get(id)?.status, error: executed.error };
+                return { success: false, proposalId: id, status: this.proposals.get(id)?.status, error: executed.error, autoExecuted: true, executed };
             }
             
             return { success: true, proposalId: id, status: this.proposals.get(id)?.status || 'EXECUTED', executeAfter: proposal.executeAfter, threshold: th, autoExecuted: true, executed };

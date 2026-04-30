@@ -30,6 +30,26 @@ const getCookieValue = (req, name) => {
     return null;
 };
 
+const formatGovernanceProposalResponse = (result) => {
+    const proposalId = result?.proposalId || null;
+    const scheduled = Boolean(proposalId);
+    const executed = result?.executed || null;
+    const executedOk = executed ? executed.success === true : null;
+    return {
+        success: result?.success === true,
+        accepted: scheduled,
+        scheduled,
+        proposalId,
+        status: result?.status || null,
+        autoExecuted: result?.autoExecuted === true,
+        executeAfter: result?.executeAfter ?? null,
+        threshold: result?.threshold ?? null,
+        executed,
+        executedOk,
+        error: result?.error ?? null,
+    };
+};
+
 module.exports = function setupApiRoutes(app, svc, middlewares) {
     const { adminRate, authOperator, authGovernor, authExecutor } = middlewares;
 
@@ -117,18 +137,18 @@ module.exports = function setupApiRoutes(app, svc, middlewares) {
     // 1. System Control
     app.post('/api/override', adminRate, authGovernor, asyncRoute(async (req, res) => {
         const result = await svc.governanceEngine.propose({ adminId: req.admin.id, action: 'OVERRIDE', params: {}, reason: 'API_OVERRIDE' });
-        res.json({ success: true, scheduled: true, ...result });
+        res.json(formatGovernanceProposalResponse(result));
     }));
 
     app.post('/api/release', adminRate, authGovernor, asyncRoute(async (req, res) => {
         const result = await svc.governanceEngine.propose({ adminId: req.admin.id, action: 'RELEASE', params: {}, reason: 'API_RELEASE' });
-        res.json({ success: true, scheduled: true, ...result });
+        res.json(formatGovernanceProposalResponse(result));
     }));
 
     app.post('/api/stop', adminRate, authGovernor, validateBody({ enable: { required: true, type: 'boolean' } }), asyncRoute(async (req, res) => {
         const { enable } = req.body;
         const result = await svc.governanceEngine.propose({ adminId: req.admin.id, action: 'TOGGLE_STOP', params: { enable }, reason: 'API_STOP' });
-        res.json({ success: true, scheduled: true, ...result });
+        res.json(formatGovernanceProposalResponse(result));
     }));
 
     // 2. Agent Management
@@ -143,14 +163,14 @@ module.exports = function setupApiRoutes(app, svc, middlewares) {
             return res.status(400).json({ error: 'Invalid agent count (0-10)' });
         }
         const result = await svc.governanceEngine.propose({ adminId: req.admin.id, action: 'SCALE_AGENTS', params: { count }, reason: 'API_SCALE' });
-        res.json({ success: true, scheduled: true, ...result });
+        res.json(formatGovernanceProposalResponse(result));
     }));
 
     app.post('/api/agents/register', adminRate, authGovernor, validateBody({ uuid: { required: true, type: 'string' }, config: { required: true, type: 'object' } }), asyncRoute(async (req, res) => {
         const { uuid, config } = req.body;
         if (!uuid || !config) return res.status(400).json({ error: 'Missing uuid or config' });
         const result = await svc.governanceEngine.propose({ adminId: req.admin.id, action: 'SET_AGENT_CONFIG', params: { uuid, config }, reason: 'API_REGISTER_CONFIG' });
-        res.json({ success: true, message: `Registered config for agent`, ...result });
+        res.json({ ...formatGovernanceProposalResponse(result), message: `Registered config for agent` });
     }));
 
     app.get('/api/agents/:uuid/config', asyncRoute(async (req, res) => {
@@ -170,20 +190,20 @@ module.exports = function setupApiRoutes(app, svc, middlewares) {
         const { uuid } = req.params;
         const { config } = req.body;
         const result = await svc.governanceEngine.propose({ adminId: req.admin.id, action: 'SET_AGENT_CONFIG', params: { uuid, config }, reason: 'API_SET_CONFIG' });
-        res.json({ success: true, scheduled: true, ...result });
+        res.json(formatGovernanceProposalResponse(result));
     }));
 
     app.post('/api/agents/:uuid/pause', adminRate, authOperator, validateBody({ pause: { required: true, type: 'boolean' } }), asyncRoute(async (req, res) => {
         const { uuid } = req.params;
         const { pause } = req.body;
         const result = await svc.governanceEngine.propose({ adminId: req.admin.id, action: 'PAUSE_AGENT', params: { uuid, pause }, reason: 'API_PAUSE' });
-        res.json({ success: true, scheduled: true, ...result });
+        res.json(formatGovernanceProposalResponse(result));
     }));
 
     app.delete('/api/agents/:uuid', adminRate, authGovernor, asyncRoute(async (req, res) => {
         const { uuid } = req.params;
         const result = await svc.governanceEngine.propose({ adminId: req.admin.id, action: 'TERMINATE_AGENT', params: { uuid }, reason: 'API_TERMINATE' });
-        res.json({ success: true, scheduled: true, ...result });
+        res.json(formatGovernanceProposalResponse(result));
     }));
 
     app.post('/api/agents/:uuid/rename', adminRate, authOperator, validateBody({ newName: { required: true, type: 'string', maxLen: 20 } }), asyncRoute(async (req, res) => {
@@ -245,7 +265,7 @@ module.exports = function setupApiRoutes(app, svc, middlewares) {
     app.post('/api/agents/:uuid/transfer-lock', adminRate, authGovernor, asyncRoute(async (req, res) => {
         const { uuid } = req.params;
         const result = await svc.governanceEngine.propose({ adminId: req.admin.id, action: 'TRANSFER_LOCK', params: { uuid }, reason: 'API_TRANSFER_LOCK' });
-        res.json({ success: true, scheduled: true, ...result });
+        res.json(formatGovernanceProposalResponse(result));
     }));
 
     // 3. Task Management (DLQ & Retries)
@@ -258,28 +278,28 @@ module.exports = function setupApiRoutes(app, svc, middlewares) {
         const { taskId } = req.params;
         const { adminUuid } = req.body || {};
         const result = await svc.governanceEngine.propose({ adminId: req.admin.id, action: 'TASK_FINALIZE', params: { taskId, adminUuid: adminUuid || req.admin.id }, reason: 'API_TASK_FINALIZE' });
-        res.json({ success: true, scheduled: true, ...result });
+        res.json(formatGovernanceProposalResponse(result));
     }));
 
     app.post('/api/tasks/:taskId/rollback', adminRate, authExecutor, asyncRoute(async (req, res) => {
         const { taskId } = req.params;
         const { adminUuid, reason } = req.body || {};
         const result = await svc.governanceEngine.propose({ adminId: req.admin.id, action: 'TASK_ROLLBACK', params: { taskId, adminUuid: adminUuid || req.admin.id, reason: reason || 'ROLLBACK' }, reason: 'API_TASK_ROLLBACK' });
-        res.json({ success: true, scheduled: true, ...result });
+        res.json(formatGovernanceProposalResponse(result));
     }));
 
     app.post('/api/tasks/:taskId/cancel', adminRate, authExecutor, asyncRoute(async (req, res) => {
         const { taskId } = req.params;
         const { adminUuid, reason } = req.body || {};
         const result = await svc.governanceEngine.propose({ adminId: req.admin.id, action: 'TASK_CANCEL', params: { taskId, adminUuid: adminUuid || req.admin.id, reason: reason || 'CANCEL' }, reason: 'API_TASK_CANCEL' });
-        res.json({ success: true, scheduled: true, ...result });
+        res.json(formatGovernanceProposalResponse(result));
     }));
 
     app.post('/api/tasks/:taskId/retry', adminRate, authExecutor, asyncRoute(async (req, res) => {
         const { taskId } = req.params;
         const { adminUuid } = req.body || {};
         const result = await svc.governanceEngine.propose({ adminId: req.admin.id, action: 'TASK_RETRY', params: { taskId, adminUuid: adminUuid || req.admin.id }, reason: 'API_TASK_RETRY' });
-        res.json({ success: true, scheduled: true, ...result });
+        res.json(formatGovernanceProposalResponse(result));
     }));
 
     // 4. Web3 Settlement & Dispute
@@ -291,7 +311,7 @@ module.exports = function setupApiRoutes(app, svc, middlewares) {
             params: { channelId, openedBy: openedBy || req.admin.id, targetNonce: Number(targetNonce) || 0, reason: reason || 'DISPUTE' },
             reason: 'API_SETTLEMENT_DISPUTE'
         });
-        res.json({ success: true, scheduled: true, ...result });
+        res.json(formatGovernanceProposalResponse(result));
     }));
 
     app.post('/api/settlement/slash', adminRate, authExecutor, validateBody({ channelId: { required: false, type: 'string' }, actorUuid: { required: false, type: 'string' }, reason: { required: false, type: 'string' } }), asyncRoute(async (req, res) => {
@@ -311,7 +331,7 @@ module.exports = function setupApiRoutes(app, svc, middlewares) {
             params: { channelId: effectiveChannelId, actorUuid: actorUuid || req.admin.id, reason: reason || 'SLASH' },
             reason: 'API_SETTLEMENT_SLASH'
         });
-        res.json({ success: true, scheduled: true, ...result });
+        res.json(formatGovernanceProposalResponse(result));
     }));
 
     // 5. Governance Proposals
