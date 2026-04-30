@@ -12,11 +12,12 @@
     "clean": "find . -name \"node_modules\" -type d -prune -exec rm -rf '{}' +",
     "typecheck": "pnpm --filter @lex-atc/shared typecheck && pnpm --filter frontend typecheck",
     "test": "pnpm --filter @lex-atc/shared test && pnpm --filter frontend test && pnpm --filter backend test",
-    "verify": "pnpm build && pnpm lint && pnpm typecheck && pnpm test",
+    "verify": "pnpm build && pnpm lint && pnpm typecheck && pnpm test && pnpm docs:check",
     "db:migrate": "cd packages/backend && pnpm dlx dotenv-cli -e ../../.env -- pnpm dlx knex migrate:latest",
     "db:rollback": "cd packages/backend && pnpm dlx dotenv-cli -e ../../.env -- pnpm dlx knex migrate:rollback",
     "stress": "pnpm --filter backend stress",
-    "doctor": "node scripts/doctor.js"
+    "doctor": "node scripts/doctor.js",
+    "docs:check": "node scripts/check-doc-links.js"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
