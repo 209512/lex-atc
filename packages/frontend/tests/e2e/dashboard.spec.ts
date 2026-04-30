@@ -37,6 +37,7 @@ test('has title and loads dashboard', async ({ page }) => {
 
   // Expect some element to be visible
   await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
+  await expect(page.getByTestId('deployment-mode-badge')).toContainText(/simulation/i);
 
   // Test some basic interaction, like clicking a tab or panel
   // Just ensure no white screen

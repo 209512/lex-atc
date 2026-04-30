@@ -33,12 +33,31 @@ export default defineConfig({
           ],
         },
       },
+      testIgnore: ['**/backend-mode.spec.ts'],
+    },
+    {
+      name: 'chromium-backend',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.VITE_BACKEND_APP_URL || 'http://127.0.0.1:5181',
+        viewport: { width: 1920, height: 1080 },
+        launchOptions: {
+          args: ['--no-sandbox'],
+        },
+      },
+      testMatch: ['**/backend-mode.spec.ts'],
     },
   ],
   webServer: [
     {
       command: `${webServerEnv} pnpm build && ${webServerEnv} pnpm preview --port 5180 --strictPort`,
       url: process.env.VITE_APP_URL || 'http://127.0.0.1:5180',
+      reuseExistingServer: true,
+      timeout: 120000,
+    },
+    {
+      command: 'VITE_ENABLE_MSW=false VITE_API_URL=http://127.0.0.1:3000/api pnpm dev --host 127.0.0.1 --port 5181 --strictPort',
+      url: process.env.VITE_BACKEND_APP_URL || 'http://127.0.0.1:5181',
       reuseExistingServer: true,
       timeout: 120000,
     },
