@@ -46,6 +46,24 @@ const loadBackendConfig = (env = process.env) => {
     const isProd = nodeEnv === 'production';
     const isTest = nodeEnv === 'test';
 
+    if (isProd) {
+        if (Object.prototype.hasOwnProperty.call(env, 'ADMIN_AUTH_DISABLED')) {
+            const err = new Error('Forbidden env in production: ADMIN_AUTH_DISABLED');
+            err.code = 'ENV_FORBIDDEN';
+            throw err;
+        }
+        if (Object.prototype.hasOwnProperty.call(env, 'ALLOW_DEV_AUTH_FALLBACK')) {
+            const err = new Error('Forbidden env in production: ALLOW_DEV_AUTH_FALLBACK');
+            err.code = 'ENV_FORBIDDEN';
+            throw err;
+        }
+        if (Object.prototype.hasOwnProperty.call(env, 'ALLOW_DEV_SEED_FALLBACK')) {
+            const err = new Error('Forbidden env in production: ALLOW_DEV_SEED_FALLBACK');
+            err.code = 'ENV_FORBIDDEN';
+            throw err;
+        }
+    }
+
     let dbMode = String(env.DB_MODE || '').toLowerCase();
     if (!dbMode) {
         if (isTest) {

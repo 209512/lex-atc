@@ -143,14 +143,14 @@ const requireAdminAuth = (opts = {}) => {
         const secret = process.env.ADMIN_TOKEN_SECRET;
 
         if (disabled) {
+            if (nodeEnv === 'production') {
+                return res.status(503).json({ error: 'ADMIN_AUTH_DISABLED_IN_PRODUCTION' });
+            }
             if (allowWhenDisabled) {
-                if (nodeEnv === 'production') {
-                    logger.warn('⚠️ [SECURITY] Admin auth is disabled in PRODUCTION.');
-                }
                 req.admin = { id: 'DEMO_ADMIN', roles: ['root', 'governor', 'operator', 'executor'] };
                 return next();
             }
-            return res.status(503).json({ error: 'ADMIN_AUTH_DISABLED_IN_PRODUCTION' });
+            return res.status(503).json({ error: 'ADMIN_AUTH_DISABLED' });
         }
 
         if (!secret) {

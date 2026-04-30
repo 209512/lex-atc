@@ -7,6 +7,8 @@
     "dev": "node index.js",
     "test": "NODE_OPTIONS=--no-warnings jest --runInBand --detectOpenHandles",
     "stress": "node scripts/stress-sim.js",
+    "bench:stress": "node scripts/bench-stress.js",
+    "validate:prod-env": "NODE_ENV=production node scripts/validate-prod-env.js",
     "test:benchmark": "node test/benchmark.js"
   },
   "keywords": [],

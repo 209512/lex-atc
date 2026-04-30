@@ -1,4 +1,17 @@
 describe('env config validation', () => {
+  test('production forbids admin disable flags', () => {
+    jest.resetModules();
+    const { loadBackendConfig } = require('./env');
+
+    expect(() => loadBackendConfig({
+      NODE_ENV: 'production',
+      ADMIN_AUTH_DISABLED: 'false',
+      ADMIN_TOKEN_SECRET: 'some-secret-key-12345',
+      CORS_ALLOWED_ORIGINS: 'https://example.com',
+      DATABASE_URL: 'postgres://testuser:testpass@localhost:5432/testdb'
+    })).toThrow(/Forbidden env in production: ADMIN_AUTH_DISABLED/);
+  });
+
   test('production requires CORS allowed origins', () => {
     jest.resetModules();
     const { loadBackendConfig } = require('./env');
@@ -29,4 +42,3 @@ describe('env config validation', () => {
     expect(cfg.rateLimit.global.limit).toBe(240);
   });
 });
-
