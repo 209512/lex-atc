@@ -1,12 +1,37 @@
 const logger = require('../../../utils/logger');
+const crypto = require('crypto');
 
 class LocalSecretProvider {
+    constructor() {
+        this._generated = new Map();
+    }
+
+    _isLocalDev() {
+        return String(process.env.ALLOW_DEV_SEED_FALLBACK || '').toLowerCase() === 'true';
+    }
+
+    _getSeedFallback(key) {
+        const env = String(process.env.NODE_ENV || 'development').toLowerCase();
+        if (env === 'test') {
+            return key === 'TREASURY_KEY_SEED' ? 'lex-atc-test-stable-seed' : 'lex-atc-test-agent-seed';
+        }
+        if (this._isLocalDev()) {
+            return key === 'TREASURY_KEY_SEED' ? 'lex-atc-dev-stable-seed' : 'lex-atc-dev-agent-seed';
+        }
+        const existing = this._generated.get(key);
+        if (existing) return existing;
+        const generated = crypto.randomBytes(32).toString('hex');
+        this._generated.set(key, generated);
+        logger.warn(`[SecretManager] Generated ephemeral non-local seed for ${key}`);
+        return generated;
+    }
+
     async getSecret(key) {
         if (key === 'TREASURY_KEY_SEED') {
-            return process.env.TREASURY_KEY_SEED || (process.env.NODE_ENV !== 'production' ? 'lex-atc-dev-stable-seed' : null);
+            return process.env.TREASURY_KEY_SEED || (process.env.NODE_ENV !== 'production' ? this._getSeedFallback(key) : null);
         }
         if (key === 'AGENT_KEY_SEED') {
-            return process.env.AGENT_KEY_SEED || (process.env.NODE_ENV !== 'production' ? 'lex-atc-dev-agent-seed' : null);
+            return process.env.AGENT_KEY_SEED || (process.env.NODE_ENV !== 'production' ? this._getSeedFallback(key) : null);
         }
         return process.env[key] || null;
     }

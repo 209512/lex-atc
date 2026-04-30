@@ -1,6 +1,10 @@
-FROM node:20-slim
+FROM node:20-bookworm-slim AS build
 
 WORKDIR /usr/src/app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g pnpm
 
@@ -21,6 +25,14 @@ COPY packages/backend ./packages/backend
 # 5. shared 패키지 빌드 (TypeScript를 JS로 변환)
 RUN pnpm --filter @lex-atc/shared build
 
+RUN pnpm prune --prod
+
+FROM node:20-slim
+
+WORKDIR /usr/src/app
+
+COPY --from=build /usr/src/app /usr/src/app
+
 # 6. 실행 경로로 이동
 WORKDIR /usr/src/app/packages/backend
 
@@ -29,4 +41,4 @@ RUN chown -R node:node /usr/src/app
 USER node
 
 EXPOSE 3000
-CMD [ "node", "index.js" ]
+CMD [ "sh", "-c", "node scripts/validate-runtime-config.js && node index.js" ]
