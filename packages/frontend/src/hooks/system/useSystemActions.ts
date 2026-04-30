@@ -35,13 +35,27 @@ export const useSystemActions = ({
             
             atcApi.scaleAgents(finalValue)
                 .then((result: any) => {
-                    if (result?.success === false || result?.executed?.success === false) {
-                        throw new Error(String(result?.error || result?.executed?.error || 'SCALE_FAILED'));
-                    }
-                    if (result?.scheduled && !result?.autoExecuted) {
+                    const accepted = Boolean(result?.accepted ?? result?.scheduled ?? result?.proposalId);
+                    const autoExecuted = result?.autoExecuted === true;
+                    const executedOk = result?.executedOk ?? (result?.executed ? result.executed.success === true : null);
+
+                    if (accepted && !autoExecuted) {
                         addLog(`⚡ SCALE PROPOSAL CREATED TO ${finalValue}`, 'policy', 'SYSTEM', { stage: LOG_STAGES.ACCEPTED, domain: LOG_DOMAINS.GOVERNANCE, actionKey: LOG_ACTIONS.SCALE_AGENTS });
                         markAction('', 'trafficIntensity', prevIntensity);
                         setState((prev: any) => ({ ...prev, trafficIntensity: prevIntensity }));
+                        return;
+                    }
+
+                    if (accepted && autoExecuted && (result?.success === false || executedOk === false || String(result?.status || '') === 'FAILED')) {
+                        playAlert();
+                        addLog(`⚠️ SCALE EXECUTION FAILED (proposal accepted): ${String(result?.error || result?.executed?.error || 'SCALE_FAILED')}`, 'error', 'SYSTEM', { stage: LOG_STAGES.FAILED, domain: LOG_DOMAINS.GOVERNANCE, actionKey: LOG_ACTIONS.SCALE_AGENTS });
+                        markAction('', 'trafficIntensity', prevIntensity);
+                        setState((prev: any) => ({ ...prev, trafficIntensity: prevIntensity }));
+                        return;
+                    }
+
+                    if (result?.success === false || result?.executed?.success === false) {
+                        throw new Error(String(result?.error || result?.executed?.error || 'SCALE_FAILED'));
                     }
                 })
                 .catch(err => {

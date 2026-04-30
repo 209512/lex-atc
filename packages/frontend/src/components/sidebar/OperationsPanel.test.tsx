@@ -46,8 +46,8 @@ describe('OperationsPanel', () => {
     fireEvent.change(screen.getByPlaceholderText('Target Nonce'), { target: { value: '11' } });
     fireEvent.change(screen.getAllByPlaceholderText('Reason')[1], { target: { value: 'manual_review' } });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Dispute' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Slash' }));
+    fireEvent.click(screen.getByTestId('settle-dispute-channel:agent-1'));
+    fireEvent.click(screen.getByTestId('settle-slash-channel:agent-1'));
 
     await waitFor(() => {
       expect(apiMock.openDispute).toHaveBeenCalledWith('channel:agent-1', 'executor-9', 11, 'MANUAL_REVIEW');

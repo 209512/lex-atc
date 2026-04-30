@@ -6,10 +6,13 @@ import { X, Pause, Activity, Cpu, Database } from 'lucide-react';
 import clsx from 'clsx';
 import { Agent } from '@/contexts/atcTypes';
 import { useATCStore } from '@/store/atc';
+import { useUIStore } from '@/store/ui';
 import { useAgentLogic } from '@/hooks/agent/useAgentLogic';
 import { useTacticalActions } from '@/hooks/agent/useTacticalActions';
 import { AgentActionButtons } from '@/components/common/AgentActionButtons';
 import { LOG_LEVELS } from '@/utils/logStyles';
+import { Tooltip } from '@/components/common/Tooltip';
+import { RISK_AXIS_META, RISK_AXIS_INDEX, normalizeRiskVector8, getAxesForDisplayMode } from '@/utils/riskVector';
 
 interface AgentDetailPopupProps {
     agent: Agent | undefined;
@@ -28,13 +31,25 @@ export const AgentDetailPopup = ({
     isCompact = false
 }: AgentDetailPopupProps) => {
     const { state  } = useATCStore(useShallow(s => ({ state: s.state })));
+    const { uiPreferences } = useUIStore(useShallow(s => ({ uiPreferences: s.uiPreferences })));
     const { onTogglePause, onTransferLock, togglePriority, terminateAgent } = useTacticalActions();
 
-    const { isPaused, isForced, statusLabel, isLocked } = useAgentLogic(agent as Agent, state);
+    const safeAgent = (agent ?? {
+        id: '',
+        uuid: '',
+        model: '',
+        status: 'idle',
+        position: [0, 0, 0],
+    }) as Agent;
+
+    const { isPaused, isForced, statusLabel, isLocked } = useAgentLogic(safeAgent, state);
 
     if (!agent || !position) return null;
 
     const verticalOffset = -180; 
+    const riskVector = normalizeRiskVector8((safeAgent as any).riskVector);
+    const vectorDisplayMode = uiPreferences?.riskVector?.displayMode ?? 'full';
+    const axes = getAxesForDisplayMode(vectorDisplayMode);
 
     return (
         <Html position={position} center zIndexRange={[100, 0]} pointerEvents="auto" occlude={false}>
@@ -56,7 +71,6 @@ export const AgentDetailPopup = ({
                     <div className="flex items-center gap-2 overflow-hidden">
                         <Activity size={14} className="shrink-0" style={{ color: isLocked ? LOG_LEVELS.success.color : LOG_LEVELS.info.color }} />
                         <span className="font-black text-xs font-mono tracking-tighter truncate">
-                            {/* displayId 적용 */}
                             {agent.displayId || agent.id}
                         </span>
                         {isPaused && <Pause size={10} className="animate-pulse shrink-0" style={{ color: LOG_LEVELS.system.color }} />}
@@ -92,6 +106,32 @@ export const AgentDetailPopup = ({
                         </>
                     )}
                 </div>
+
+                {!isCompact && (
+                    <div className="mb-4">
+                        <div className="text-[9px] font-mono opacity-60 mb-2">RISK VECTOR (8D)</div>
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1" data-testid="risk-vector-bars">
+                            {axes.map((k) => {
+                                const i = RISK_AXIS_INDEX[k];
+                                const v = riskVector[i as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7];
+                                return (
+                                    <div key={k} className="flex items-center gap-2" data-testid={`risk-axis-${k}`}>
+                                        <Tooltip content={`${RISK_AXIS_META[k].name} — ${RISK_AXIS_META[k].description}`} position="top">
+                                            <div className="w-6 text-[9px] font-mono opacity-60">{k}</div>
+                                        </Tooltip>
+                                        <div className={clsx("flex-1 h-2 rounded overflow-hidden", isDark ? "bg-white/10" : "bg-slate-200")}>
+                                            <div
+                                                className={clsx("h-full rounded", isDark ? "bg-emerald-400" : "bg-emerald-600")}
+                                                style={{ width: `${Math.round(v * 100)}%` }}
+                                            />
+                                        </div>
+                                        <div className="w-8 text-right text-[9px] font-mono opacity-80">{v.toFixed(2)}</div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
                 
                 <div className="pt-2 border-t border-gray-500/20">
                     <AgentActionButtons 

@@ -1,5 +1,6 @@
 // src/contexts/atcTypes.ts
 import { LogType } from '@/utils/logStyles';
+import type { OrbitalLevel, RiskVector8 } from '@lex-atc/shared';
 
 export type LogDomain = 'system' | 'agent' | 'lock' | 'governance' | 'settlement' | 'isolation' | 'economy';
 export type LogStage = 'request' | 'accepted' | 'executed' | 'failed';
@@ -31,6 +32,8 @@ export interface Agent {
   isPaused?: boolean;
   color?: string;
   position: [number, number, number];
+  orbitalLevel?: OrbitalLevel;
+  riskVector?: RiskVector8;
   resource?: string;
   account?: any;
   metrics?: any;

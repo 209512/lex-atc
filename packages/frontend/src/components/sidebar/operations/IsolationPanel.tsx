@@ -6,9 +6,9 @@ import { useShallow } from 'zustand/react/shallow';
 import { atcApi } from '@/contexts/atcApi';
 import { formatId } from '@/utils/agentIdentity';
 import { isolationHelp, isolationPresets } from '@/components/sidebar/opsConsoleConfig';
-import { getSectionCardClass, getRowCardClass, getActionButtonClass, Spinner, getInputClass, getHelpPillClass, CommonPanelProps } from './opsUiHelpers';
+import { getSectionCardClass, getRowCardClass, getActionButtonClass, Spinner, getInputClass, getHelpPillClass, CommonPanelProps, ActionStatusBadge } from './opsUiHelpers';
 
-export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runAction }) => {
+export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, status, runAction }) => {
   const state = useATCStore(useShallow(s => s.state));
   const addLog = useATCStore(s => s.addLog);
   const [taskAdminId, setTaskAdminId] = useState('');
@@ -57,7 +57,10 @@ export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runAc
           })}
           className={getActionButtonClass(isDark, 'critical')}
         >
-          {busy[emergencyKey] ? <Spinner /> : (state.globalStop ? 'Emergency Stop Active' : 'Emergency Stop')}
+          <span className="inline-flex items-center gap-1">
+            {busy[emergencyKey] ? <Spinner /> : (state.globalStop ? 'Emergency Stop Active' : 'Emergency Stop')}
+            <ActionStatusBadge isDark={isDark} status={status[emergencyKey]} />
+          </span>
         </button>
         <button
           disabled={busy[`${emergencyKey}:resume`] || !state.globalStop}
@@ -76,7 +79,10 @@ export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runAc
           })}
           className={getActionButtonClass(isDark, 'neutral')}
         >
-          {busy[`${emergencyKey}:resume`] ? <Spinner /> : 'Resume'}
+          <span className="inline-flex items-center gap-1">
+            {busy[`${emergencyKey}:resume`] ? <Spinner /> : 'Resume'}
+            <ActionStatusBadge isDark={isDark} status={status[`${emergencyKey}:resume`]} />
+          </span>
         </button>
       </div>
       <div className="grid grid-cols-1 gap-1.5">
@@ -156,7 +162,10 @@ export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runAc
                 })}
                 className={getActionButtonClass(isDark, 'neutral')}
               >
-                {busy[finalizeKey] ? <Spinner /> : 'Finalize'}
+                <span className="inline-flex items-center gap-1">
+                  {busy[finalizeKey] ? <Spinner /> : 'Finalize'}
+                  <ActionStatusBadge isDark={isDark} status={status[finalizeKey]} />
+                </span>
               </button>
               <button
                 data-testid={`iso-rollback-${taskId}`}
@@ -176,7 +185,10 @@ export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runAc
                 })}
                 className={getActionButtonClass(isDark, 'warn')}
               >
-                {busy[rollbackKey] ? <Spinner /> : 'Rollback'}
+                <span className="inline-flex items-center gap-1">
+                  {busy[rollbackKey] ? <Spinner /> : 'Rollback'}
+                  <ActionStatusBadge isDark={isDark} status={status[rollbackKey]} />
+                </span>
               </button>
               <button
                 data-testid={`iso-cancel-${taskId}`}
@@ -196,7 +208,10 @@ export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, runAc
                 })}
                 className={getActionButtonClass(isDark, 'critical')}
               >
-                {busy[cancelKey] ? <Spinner /> : 'Cancel'}
+                <span className="inline-flex items-center gap-1">
+                  {busy[cancelKey] ? <Spinner /> : 'Cancel'}
+                  <ActionStatusBadge isDark={isDark} status={status[cancelKey]} />
+                </span>
               </button>
             </div>
           </div>
