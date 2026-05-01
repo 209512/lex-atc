@@ -88,7 +88,7 @@ export const L4EventTable = ({ snapshots }: { snapshots: L4StatusSnapshot[] }) =
                   {new Date(s.occurredAt).toLocaleString()}
                 </div>
               </div>
-              <div className="flex flex-wrap items-center justify-end gap-1">
+              <div className="flex flex-nowrap items-center justify-end gap-1 overflow-x-auto min-w-0">
                 {axisOrder.map((a) => (
                   <StatusBadge key={a} axis={a} state={s.states[a]} compact />
                 ))}

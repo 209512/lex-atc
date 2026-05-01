@@ -168,7 +168,6 @@ export const createATCCoreSlice: StateCreator<ATCStore, [], [], ATCCoreSlice> = 
     const nextStop = !state.globalStop;
     get().markAction('', 'globalStop', nextStop);
     get().setState((prev) => ({ ...prev, globalStop: nextStop }));
-    get().addLog(nextStop ? 'GLOBAL_STOP_ENGAGED' : 'SYSTEM_RELEASED', 'system');
 
     atcApi.toggleGlobalStop(nextStop).catch((err) => {
       get().addLog(`GLOBAL_STOP_FAILED: ${err.message}`, 'error');
