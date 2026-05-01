@@ -197,7 +197,7 @@ export const SidebarContainer = () => {
                     aria-label="사이드바 펼치기"
                     onClick={() => setSidebarWidth(450)}
                     className={clsx(
-                        "fixed top-4 right-4 z-[60] pointer-events-auto rounded-lg border px-3 py-2 text-[10px] font-mono uppercase tracking-[0.18em] shadow-xl",
+                        "fixed top-16 right-4 z-[60] pointer-events-auto rounded-lg border px-3 py-2 text-[10px] font-mono uppercase tracking-[0.18em] shadow-xl",
                         isDark ? "bg-[#0d1117]/90 border-gray-800 text-gray-200 hover:bg-[#0d1117]" : "bg-white/90 border-slate-200 text-slate-800 hover:bg-slate-50"
                     )}
                     data-testid="btn-sidebar-reveal"
