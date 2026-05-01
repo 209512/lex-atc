@@ -5,11 +5,15 @@ import { Tooltip } from '@/components/common/Tooltip';
 import { useUIStore } from '@/store/ui';
 import { useShallow } from 'zustand/react/shallow';
 import { useATCStore } from '@/store/atc';
+import { frontendConfig } from '@/config/runtime';
 
 export const SidebarCompactRail = ({ onOpenSettings, onExpand }: { onOpenSettings: () => void; onExpand: () => void }) => {
   const state = useATCStore(useShallow(s => s.state));
   const { triggerOverride, releaseLock  } = useATCStore(useShallow(s => ({ triggerOverride: s.actions.triggerOverride, releaseLock: s.actions.releaseLock })));
   const { isDark, setIsDark     } = useUIStore(useShallow(s => ({ isDark: s.isDark, setIsDark: s.setIsDark })));
+  const mswFallback = Boolean((window as any)['__LEX_ATC_MSW_DISABLED__']);
+  const modeLabel = mswFallback ? 'BACKEND (FALLBACK)' : (frontendConfig.deployment.mode === 'standalone' ? 'SIMULATION' : 'BACKEND');
+  const badgeText = modeLabel.startsWith('SIMULATION') ? 'SIM' : (modeLabel.startsWith('BACKEND') ? 'API' : modeLabel);
 
   const metrics = [
     { icon: Users, label: 'Agents', value: String(state.activeAgentCount || 0) },
@@ -52,6 +56,18 @@ export const SidebarCompactRail = ({ onOpenSettings, onExpand }: { onOpenSetting
       </div>
 
       <div className="flex flex-col items-center gap-3">
+        <Tooltip content={modeLabel} position="left">
+          <div
+            className={clsx(
+              'px-2 py-1 rounded border text-[9px] font-bold uppercase tracking-[0.12em]',
+              modeLabel.startsWith('SIMULATION') && (isDark ? 'border-amber-400/30 bg-amber-400/10 text-amber-200' : 'border-amber-300 bg-amber-50 text-amber-800'),
+              modeLabel.startsWith('BACKEND') && (isDark ? 'border-sky-400/30 bg-sky-400/10 text-sky-200' : 'border-sky-300 bg-sky-50 text-sky-800')
+            )}
+            data-testid="deployment-mode-badge-rail"
+          >
+            {badgeText}
+          </div>
+        </Tooltip>
         <Tooltip content="Toggle Theme" position="left">
           <button onClick={() => setIsDark((prev) => !prev)} className={clsx('p-2 rounded-lg', isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100')}>
             {isDark ? '🌙' : '☀️'}
