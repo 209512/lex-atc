@@ -1,6 +1,4 @@
 import React, { useState, useCallback } from 'react';
-import clsx from 'clsx';
-import { ShieldAlert } from 'lucide-react';
 import { useATCStore } from '@/store/atc';
 import { useShallow } from 'zustand/react/shallow';
 import { useUIStore } from '@/store/ui';
@@ -8,7 +6,6 @@ import { GovernancePanel } from './operations/GovernancePanel';
 import { IsolationPanel } from './operations/IsolationPanel';
 import { SettlementPanel } from './operations/SettlementPanel';
 import { BusyMap, RunActionArgs, ActionStatusMap } from './operations/opsUiHelpers';
-import { useModalStore } from '@/store/ui/modalStore';
 
 export const OperationsPanel = () => {
   const { isDark     } = useUIStore(useShallow(s => ({ isDark: s.isDark })));
@@ -17,7 +14,6 @@ export const OperationsPanel = () => {
   const addLog = useATCStore(s => s.addLog);
   const [busy, setBusy] = useState<BusyMap>({});
   const [status, setStatus] = useState<ActionStatusMap>({});
-  const { setPolicyModalOpen } = useModalStore();
   const [collapsed, setCollapsed] = useState<{ governance: boolean; isolation: boolean; settlement: boolean }>({ governance: false, isolation: false, settlement: false });
 
   const runAction = useCallback(async ({
@@ -93,26 +89,7 @@ export const OperationsPanel = () => {
 
   return (
     <div data-testid="panel-ops" className="flex flex-col min-w-0">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <ShieldAlert size={14} className="text-blue-500" />
-          <div className={clsx('text-[11px] font-mono font-bold uppercase tracking-[0.18em]', isDark ? 'text-gray-300' : 'text-slate-800')}>
-            Ops Control
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => setPolicyModalOpen(true)}
-          className={clsx(
-            'px-2 py-1 rounded-md border text-[9px] font-mono uppercase tracking-[0.12em] transition',
-            isDark ? 'border-blue-500/30 text-blue-200 hover:bg-blue-500/10' : 'border-blue-200 text-blue-700 hover:bg-blue-50'
-          )}
-        >
-          Policy Templates
-        </button>
-      </div>
-
-      <div className="mt-3 space-y-3">
+      <div className="space-y-3">
         <GovernancePanel
           isDark={isDark}
           busy={busy}

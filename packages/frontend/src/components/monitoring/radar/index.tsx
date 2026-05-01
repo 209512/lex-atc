@@ -88,7 +88,7 @@ export const Radar: React.FC<{ compact?: boolean; isMainView?: boolean }> = ({ c
                     <OrbitControls 
                         makeDefault 
                         enableZoom={true} 
-                        enablePan={!selectedAgentId} 
+                        enablePan={true} 
                         maxDistance={60} 
                         minDistance={3} 
                         enableDamping={true} 

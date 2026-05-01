@@ -99,6 +99,8 @@ export const AgentDetailPopup = ({
     if (!agent || !position) return null;
 
     const startDrag = (e: React.PointerEvent) => {
+        const targetEl = e.target as HTMLElement | null;
+        if (targetEl?.closest('button')) return;
         e.preventDefault();
         e.stopPropagation();
         const target = e.currentTarget as HTMLElement;
@@ -181,7 +183,11 @@ export const AgentDetailPopup = ({
                         </span>
                         {isPaused && <Pause size={10} className="animate-pulse shrink-0" style={{ color: LOG_LEVELS.system.color }} />}
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="hover:text-red-500 transition-colors ml-2 shrink-0 p-1 cursor-pointer">
+                    <button
+                        onPointerDown={(e) => { e.stopPropagation(); }}
+                        onClick={(e) => { e.stopPropagation(); onClose(); }}
+                        className="hover:text-red-500 transition-colors ml-2 shrink-0 p-1 cursor-pointer"
+                    >
                         <X size={16} />
                     </button>
                 </div>
