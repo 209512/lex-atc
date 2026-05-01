@@ -18,6 +18,7 @@ export const CameraController = ({ targetPosition, targetAgent }: Props) => {
     const targetVec = new THREE.Vector3();
     const initialCameraPos = useRef<THREE.Vector3 | null>(null);
     const initialTarget = useRef<THREE.Vector3 | null>(null);
+    const shouldReset = useRef(false);
     
     const isAutoZooming = useRef(false);
     const isUserInteracting = useRef(false);
@@ -54,8 +55,10 @@ export const CameraController = ({ targetPosition, targetAgent }: Props) => {
                 isUserInteracting.current = false; 
                 lastSelectedId.current = selectedAgentId;
             }
+            shouldReset.current = false;
         } else {
             isAutoZooming.current = false;
+            if (lastSelectedId.current) shouldReset.current = true;
             lastSelectedId.current = null;
         }
     }, [selectedAgentId]);
@@ -97,10 +100,13 @@ export const CameraController = ({ targetPosition, targetAgent }: Props) => {
                 }
             }
             orbit.update();
-        } else if (initialCameraPos.current && initialTarget.current) {
+        } else if (shouldReset.current && initialCameraPos.current && initialTarget.current) {
             orbit.target.lerp(initialTarget.current, 0.12);
             camera.position.lerp(initialCameraPos.current, 0.08);
             orbit.update();
+            if (orbit.target.distanceTo(initialTarget.current) < 0.02 && camera.position.distanceTo(initialCameraPos.current) < 0.02) {
+                shouldReset.current = false;
+            }
         }
     });
 

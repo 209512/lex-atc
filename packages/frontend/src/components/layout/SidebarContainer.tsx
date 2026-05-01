@@ -4,8 +4,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import { useUIStore } from '@/store/ui';
 import { useSidebarResize } from '@/hooks/system/useSidebarResize';
-import { Tooltip } from '@/components/common/Tooltip';
-import { ChevronRight } from 'lucide-react';
 
 import { SidebarHeader } from '@/components/sidebar/SidebarHeader';
 import { SidebarControlPanel } from '@/components/sidebar/SidebarControlPanel';
@@ -40,12 +38,13 @@ const SECTION_SUBTITLES: Record<SidebarSectionKey, string> = {
 };
 
 export const SidebarContainer = () => {
-    const { sidebarWidth, setSidebarWidth, isDark, uiPreferences, updateSidebarPreferences } = useUIStore(useShallow(s => ({
+    const { sidebarWidth, setSidebarWidth, isDark, uiPreferences, updateSidebarPreferences, updateUIPreferences } = useUIStore(useShallow(s => ({
         sidebarWidth: s.sidebarWidth,
         setSidebarWidth: s.setSidebarWidth,
         isDark: s.isDark,
         uiPreferences: s.uiPreferences,
-        updateSidebarPreferences: s.updateSidebarPreferences
+        updateSidebarPreferences: s.updateSidebarPreferences,
+        updateUIPreferences: s.updateUIPreferences
     })));
     const [uptime, setUptime] = useState(0);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -154,21 +153,6 @@ export const SidebarContainer = () => {
             )}
             style={getSidebarStyle()}
         >
-                {!isHidden && !isMobile && (
-                    <Tooltip content="Hide Sidebar" position="left">
-                        <button
-                            aria-label="사이드바 숨기기"
-                            onClick={() => setSidebarWidth(0)}
-                            className={clsx(
-                                "absolute top-1/2 -translate-y-1/2 left-0 -translate-x-full z-[70] h-16 w-6 rounded-l-xl border border-r-0 backdrop-blur-md flex items-center justify-center pointer-events-auto",
-                                isDark ? "bg-[#0d1117]/90 border-gray-800 text-gray-200 hover:bg-[#161b22]" : "bg-white/90 border-slate-200 text-slate-800 hover:bg-slate-50"
-                            )}
-                        >
-                            <ChevronRight size={16} className="opacity-80" />
-                        </button>
-                    </Tooltip>
-                )}
-
                 {isMobile && !isHidden && (
                     <div 
                         className="w-full h-6 flex items-center justify-center cursor-pointer active:bg-white/5"
@@ -226,7 +210,10 @@ export const SidebarContainer = () => {
 
                 {isCollapsed && (
                     <SidebarCompactRail 
-                        onExpand={() => setSidebarWidth(450)} 
+                        onExpand={() => {
+                            if (uiPreferences.viewMode === 'focus') updateUIPreferences({ viewMode: 'operator' });
+                            setSidebarWidth(lastExpandedWidth.current);
+                        }} 
                         onOpenSettings={() => setIsSettingsOpen(true)} 
                     />
                 )}

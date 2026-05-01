@@ -2,7 +2,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import React from 'react';
 import clsx from 'clsx';
-import { VolumeX, Speaker, Unlock, Lock, Eye, Activity, LayoutDashboard, SlidersHorizontal } from 'lucide-react';
+import { VolumeX, Speaker, Unlock, Lock, Eye, Activity, LayoutDashboard, ChevronRight } from 'lucide-react';
 import { Tooltip } from '@/components/common/Tooltip';
 import { useATCStore } from '@/store/atc';
 import { useUIStore } from '@/store/ui';
@@ -17,7 +17,7 @@ export const SidebarControlPanel = () => {
         playClick: s.actions.playClick,
         addLog: s.actions.addLog
     })));
-    const { isDark, uiPreferences, updateUIPreferences  } = useUIStore(useShallow(s => ({ isDark: s.isDark, uiPreferences: s.uiPreferences, updateUIPreferences: s.updateUIPreferences })));
+    const { isDark, uiPreferences, updateUIPreferences, setSidebarWidth } = useUIStore(useShallow(s => ({ isDark: s.isDark, uiPreferences: s.uiPreferences, updateUIPreferences: s.updateUIPreferences, setSidebarWidth: s.setSidebarWidth })));
     
     const [isOverrideLoading, setIsOverrideLoading] = React.useState(false);
     const { viewMode } = uiPreferences;
@@ -55,6 +55,17 @@ export const SidebarControlPanel = () => {
             "p-2.5 border-b z-20 relative shrink-0 grid grid-cols-[auto_1fr_auto] gap-1 h-20 items-center min-w-0",
             isDark ? "border-gray-800 bg-gray-900/50" : "border-slate-200 bg-slate-50/50"
         )}>
+            <button
+                aria-label="사이드바 숨기기"
+                onClick={() => setSidebarWidth(0)}
+                className={clsx(
+                    "hidden md:flex absolute top-1/2 -translate-y-1/2 left-0 -translate-x-full z-[70] h-16 w-6 rounded-l-xl border border-r-0 backdrop-blur-md items-center justify-center pointer-events-auto",
+                    isDark ? "bg-[#0d1117]/90 border-gray-800 text-gray-200 hover:bg-[#161b22]" : "bg-white/90 border-slate-200 text-slate-800 hover:bg-slate-50"
+                )}
+                title="Hide Sidebar"
+            >
+                <ChevronRight size={16} className="opacity-80" />
+            </button>
         
             {/* AUDIO CONTROL */}
             <div className="flex flex-col gap-1 min-w-0">

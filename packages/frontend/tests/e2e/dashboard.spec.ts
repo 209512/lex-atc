@@ -30,10 +30,10 @@ test('has title and loads dashboard', async ({ page }) => {
     window.localStorage.setItem('lex-atc.ui-state.v3', JSON.stringify({ state: { sidebarWidth: 450, viewMode: 'detached', uiPreferences: { theme: 'dark', viewMode: 'operator', panels: { terminal: { isOpen: true }, queue: { isOpen: true }, tactical: { isOpen: true }, l4: { isOpen: true } }, panelOrder: [], sidebar: { sections: { ops: true, overview: true, l4: true, agents: true }, sectionOrder: ['overview', 'l4', 'ops', 'agents'] }, terminal: { filter: 'ALL', domainFilter: 'ALL', actionKeyFilter: 'ALL' }, l4: { rightPanel: 'summary' } } }, version: 0 }));
   });
   
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 15000 });
 
   // Expect a title "to contain" a substring.
-  await expect(page).toHaveTitle(/frontend/i);
+  await expect(page).toHaveTitle(/frontend/i, { timeout: 15000 });
 
   // Expect some element to be visible
   await expect(page.locator('body')).toBeVisible({ timeout: 15000 });

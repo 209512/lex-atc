@@ -1,6 +1,6 @@
 // src/components/monitoring/radar/AgentDetailPopup.tsx
 import { useShallow } from 'zustand/react/shallow';
-import React, { useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Html } from '@react-three/drei';
 import { X, Pause, Activity, Cpu, Database } from 'lucide-react'; 
 import clsx from 'clsx';
@@ -49,17 +49,24 @@ export const AgentDetailPopup = ({
     const vectorDisplayMode = uiPreferences?.riskVector?.displayMode ?? 'full';
     const axes = getAxesForDisplayMode(vectorDisplayMode);
     const agentKey = agent?.id ?? '';
+    const baseY = isCompact ? -120 : -150;
+    const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: baseY });
+    const dragRef = useRef<{ active: boolean; startX: number; startY: number; originX: number; originY: number }>({ active: false, startX: 0, startY: 0, originX: 0, originY: 0 });
+
+    useEffect(() => {
+        setOffset({ x: 0, y: baseY });
+        dragRef.current.active = false;
+    }, [agentKey, baseY]);
 
     useLayoutEffect(() => {
         if (!agentKey) return;
         const el = popupRef.current;
         if (!el) return;
         const pad = 10;
-        const baseY = isCompact ? -120 : -150;
 
         const clamp = () => {
-            let dx = 0;
-            let dy = baseY;
+            let dx = offset.x;
+            let dy = offset.y;
             el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
 
             const rect = el.getBoundingClientRect();
@@ -67,7 +74,7 @@ export const AgentDetailPopup = ({
             if (rect.bottom > window.innerHeight - pad) dy -= rect.bottom - (window.innerHeight - pad);
             if (rect.left < pad) dx += pad - rect.left;
             if (rect.right > window.innerWidth - pad) dx -= rect.right - (window.innerWidth - pad);
-            el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+            if (dx !== offset.x || dy !== offset.y) setOffset({ x: dx, y: dy });
         };
 
         const raf = requestAnimationFrame(clamp);
@@ -76,9 +83,30 @@ export const AgentDetailPopup = ({
             cancelAnimationFrame(raf);
             window.removeEventListener('resize', clamp);
         };
-    }, [agentKey, isCompact]);
+    }, [agentKey, isCompact, offset.x, offset.y]);
 
     if (!agent || !position) return null;
+
+    const startDrag = (e: React.PointerEvent) => {
+        e.stopPropagation();
+        dragRef.current = { active: true, startX: e.clientX, startY: e.clientY, originX: offset.x, originY: offset.y };
+
+        const onMove = (ev: PointerEvent) => {
+            if (!dragRef.current.active) return;
+            const dx = ev.clientX - dragRef.current.startX;
+            const dy = ev.clientY - dragRef.current.startY;
+            setOffset({ x: dragRef.current.originX + dx, y: dragRef.current.originY + dy });
+        };
+
+        const onUp = () => {
+            dragRef.current.active = false;
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+        };
+
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+    };
 
     return (
         <Html position={position} center zIndexRange={[100, 0]} pointerEvents="auto" occlude={false}>
@@ -91,13 +119,13 @@ export const AgentDetailPopup = ({
                     isForced ? "ring-2 ring-purple-500 bg-purple-900/20" : 
                     (isDark ? "bg-[#0d1117]/95 border-gray-700 text-gray-300" : "bg-white/95 border-slate-300 text-slate-700")
                 )}
-                style={{ cursor: 'default' }} 
+                style={{ cursor: 'default', transform: `translate3d(${offset.x}px, ${offset.y}px, 0)` }} 
                 onPointerDown={(e) => { e.stopPropagation(); }}
                 onPointerUp={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); }}
                 onWheel={(e) => e.stopPropagation()}
             >
-                <div className="flex justify-between items-start mb-3 border-b pb-2 border-gray-500/20">
+                <div className="flex justify-between items-start mb-3 border-b pb-2 border-gray-500/20 cursor-move" onPointerDown={startDrag}>
                     <div className="flex items-center gap-2 overflow-hidden">
                         <Activity size={14} className="shrink-0" style={{ color: isLocked ? LOG_LEVELS.success.color : LOG_LEVELS.info.color }} />
                         <span className="font-black text-xs font-mono tracking-tighter truncate">

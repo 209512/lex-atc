@@ -32,7 +32,7 @@ const App = () => {
     )}>
       {frontendConfig.deployment.mode === 'standalone' && sidebarWidth <= 0 && (
         <div className={clsx(
-          'pointer-events-none absolute top-3 right-3 z-[60] px-2 py-1 rounded border font-mono text-[10px] tracking-[0.16em] uppercase',
+          'pointer-events-none absolute bottom-4 right-4 z-[60] px-2 py-1 rounded border font-mono text-[10px] tracking-[0.16em] uppercase',
           isDark ? 'border-amber-400/30 bg-amber-400/10 text-amber-200' : 'border-amber-300 bg-amber-50 text-amber-800',
         )}>
           Simulation Mode
