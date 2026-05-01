@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import clsx from 'clsx';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useUIStore } from '@/store/ui';
 import { useShallow } from 'zustand/react/shallow';
 import { useL4Snapshots } from '@/hooks/l4/useL4Snapshots';
@@ -13,7 +13,6 @@ const axisOrder: StatusAxis[] = ['isolation', 'settlement', 'rollback', 'admin']
 export const L4StatusPanel = () => {
   const { isDark     } = useUIStore(useShallow(s => ({ isDark: s.isDark })));
   const { snapshots, rawState } = useL4Snapshots();
-  const navigate = useNavigate();
   const gas = (rawState as any)?.gasEconomics;
 
   const counts = useMemo(() => {
@@ -45,21 +44,8 @@ export const L4StatusPanel = () => {
 
   return (
     <div className="flex flex-col min-w-0">
-      <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
-        <div className={clsx('text-[11px] font-mono font-bold uppercase tracking-[0.18em]', isDark ? 'text-gray-300' : 'text-slate-800')}>
-          L4 Monitoring
-        </div>
-        <button
-          onClick={() => navigate('/status-system')}
-          aria-label="Status guide 열기"
-          data-testid="l4-status-guide"
-          className={clsx('shrink-0 text-[10px] font-mono uppercase tracking-[0.12em] opacity-80', isDark ? 'text-blue-200 hover:opacity-100' : 'text-blue-700 hover:opacity-100')}
-        >
-          guide
-        </button>
-      </div>
       {gas && (
-        <div className={clsx('mt-2 rounded-lg border px-2 py-2 text-[10px] font-mono', isDark ? 'border-white/10 bg-black/30 text-emerald-200' : 'border-slate-200 bg-slate-50 text-emerald-800')}>
+        <div className={clsx('rounded-lg border px-2 py-2 text-[10px] font-mono', isDark ? 'border-white/10 bg-black/30 text-emerald-200' : 'border-slate-200 bg-slate-50 text-emerald-800')}>
           <div className="flex items-center justify-between gap-2 min-w-0">
             <span className="uppercase tracking-[0.12em] opacity-80 min-w-0 truncate">L1/L2 Gas Savings (%)</span>
             <span className="font-bold">{Number(gas.savingsPct || 0).toFixed(2)}%</span>

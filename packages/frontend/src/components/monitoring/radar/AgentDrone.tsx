@@ -274,17 +274,17 @@ export const AgentDrone = ({
                                 const [row1, row2] = splitRiskVectorRows(axes);
                                 const Row = ({ keys }: { keys: readonly RiskAxisKey[] }) => (
                                     <div className={clsx(
-                                        "grid gap-x-2 gap-y-1",
+                                        "grid gap-x-1 gap-y-1",
                                         keys.length <= 2 ? "grid-cols-2" : "grid-cols-4"
                                     )}>
                                         {keys.map((k) => {
                                             const v = rv[RISK_AXIS_INDEX[k] as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7];
                                             return (
-                                                <div key={k} className="grid grid-cols-[12px_minmax(0,1fr)] items-center gap-x-0.5 min-w-0">
+                                                <div key={k} className="flex items-center gap-1 min-w-0">
                                                     <Tooltip content={`${RISK_AXIS_META[k as keyof typeof RISK_AXIS_META].name} — ${RISK_AXIS_META[k as keyof typeof RISK_AXIS_META].description}`} position="top">
-                                                        <span className="opacity-70">{k}:</span>
+                                                        <span className="opacity-70 shrink-0">{k}:</span>
                                                     </Tooltip>
-                                                    <span className="opacity-90 tabular-nums text-right truncate">{v.toFixed(2)}</span>
+                                                    <span className="opacity-90 tabular-nums">{v.toFixed(2)}</span>
                                                 </div>
                                             );
                                         })}
