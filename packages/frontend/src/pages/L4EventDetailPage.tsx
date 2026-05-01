@@ -7,7 +7,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { useL4Snapshots } from '@/hooks/l4/useL4Snapshots';
 import { AxisTimeline } from '@/components/l4/AxisTimeline';
 import { RawPayloadPanel } from '@/components/l4/RawPayloadPanel';
-import { StatusBadge } from '@/components/l4/StatusBadge';
 import { formatId } from '@/utils/agentIdentity';
 
 export const L4EventDetailPage = () => {
@@ -50,18 +49,15 @@ export const L4EventDetailPage = () => {
 
         <div className="mt-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="min-w-0">
-            <div className={clsx('text-[18px] font-black tracking-tight', isDark ? 'text-white/80' : 'text-slate-900')}>
-              {snap.entityKind} · {formatId(snap.entityId)}
+            <div className={clsx('text-[18px] font-black tracking-tight whitespace-nowrap truncate', isDark ? 'text-white/80' : 'text-slate-900')}>
+              {String(snap.entityKind || '').toUpperCase()}
+            </div>
+            <div className={clsx('text-[11px] font-mono opacity-70 tabular-nums whitespace-nowrap truncate', isDark ? 'text-gray-400' : 'text-slate-600')}>
+              id: {formatId(snap.entityId)}
             </div>
             <div className={clsx('text-[11px] font-mono opacity-70 tabular-nums whitespace-nowrap truncate', isDark ? 'text-gray-400' : 'text-slate-600')}>
               occurredAt: {new Date(snap.occurredAt).toLocaleString()}
             </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            <StatusBadge axis="isolation" state={snap.states.isolation} />
-            <StatusBadge axis="settlement" state={snap.states.settlement} />
-            <StatusBadge axis="rollback" state={snap.states.rollback} />
-            <StatusBadge axis="admin" state={snap.states.admin} />
           </div>
         </div>
 

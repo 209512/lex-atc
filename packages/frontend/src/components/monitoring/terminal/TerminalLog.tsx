@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
- import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import Draggable from 'react-draggable';
 import clsx from 'clsx';
 import { useATCStore } from '@/store/atc';
@@ -53,8 +53,14 @@ export const TerminalLog = () => {
   const filter = terminalPrefs.filter ?? 'ALL';
   const domainFilter = terminalPrefs.domainFilter ?? 'ALL';
   const actionKeyFilter = terminalPrefs.actionKeyFilter ?? 'ALL';
-  const excludedFilters = Array.isArray(terminalPrefs.excludedFilters) ? terminalPrefs.excludedFilters : [];
-  const excludedDomains = Array.isArray(terminalPrefs.excludedDomains) ? terminalPrefs.excludedDomains : [];
+  const excludedFilters = useMemo(
+    () => (Array.isArray(terminalPrefs.excludedFilters) ? terminalPrefs.excludedFilters : []),
+    [terminalPrefs.excludedFilters]
+  );
+  const excludedDomains = useMemo(
+    () => (Array.isArray(terminalPrefs.excludedDomains) ? terminalPrefs.excludedDomains : []),
+    [terminalPrefs.excludedDomains]
+  );
   const showOnlyEconomy = Boolean(terminalPrefs.showOnlyEconomy);
   const autoScroll = terminalPrefs.autoScroll !== false;
 
