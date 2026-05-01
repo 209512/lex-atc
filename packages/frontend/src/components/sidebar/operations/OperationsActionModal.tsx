@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Gavel, X, AlertTriangle } from 'lucide-react';
 import clsx from 'clsx';
@@ -16,11 +16,22 @@ export const OperationsActionModal = () => {
   const [threshold, setThreshold] = useState('1');
   const [timelock, setTimelock] = useState('0');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!operationsModalOpen) return;
+    setReason('OPS_ACTION');
+    setThreshold('1');
+    setTimelock('0');
+    setErrorMessage(null);
+    setIsSubmitting(false);
+  }, [operationsModalOpen, operationsActionType, operationsTargetId]);
 
   if (!operationsModalOpen) return null;
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    setErrorMessage(null);
     playClick();
     try {
       if (['slash', 'dispute'].includes(operationsActionType)) {
@@ -33,7 +44,7 @@ export const OperationsActionModal = () => {
            addLog(`SLASH_EXECUTED on ${operationsTargetId}`, 'critical', 'SYSTEM');
            useATCStore.getState().markAction(operationsTargetId, 'slash', true);
         } else {
-           await atcApi.openDispute(channelId, operationsTargetId, undefined, reason);
+           await atcApi.openDispute({ channelId, actorUuid: operationsTargetId, reason });
            addLog(`DISPUTE_OPENED for ${operationsTargetId}`, 'warn', 'SYSTEM');
         }
       } else {
@@ -53,6 +64,7 @@ export const OperationsActionModal = () => {
       closeOperationsModal();
     } catch (err: any) {
       playAlert();
+      setErrorMessage(err?.message || 'ACTION_FAILED');
       addLog(`ACTION_FAILED: ${err.message}`, 'error', 'SYSTEM');
     } finally {
       setIsSubmitting(false);
@@ -103,6 +115,12 @@ export const OperationsActionModal = () => {
               className={clsx("w-full p-2 rounded border focus:outline-none focus:ring-1 focus:ring-blue-500", isDark ? "bg-black/30 border-gray-700" : "bg-slate-50 border-slate-300")}
             />
           </div>
+
+          {errorMessage && (
+            <div className={clsx("p-2 rounded border text-[10px] font-mono", isDark ? "bg-red-950/40 border-red-500/30 text-red-200" : "bg-red-50 border-red-200 text-red-700")}>
+              {errorMessage}
+            </div>
+          )}
 
           {isGov && (
             <div className="grid grid-cols-2 gap-3">

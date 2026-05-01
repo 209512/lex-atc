@@ -96,7 +96,12 @@ export const SettlementPanel: React.FC<CommonPanelProps> = ({ isDark, busy, stat
           disabled={busy['dispute:manual'] || !manualChannelId.trim()}
           onClick={() => runAction({
             key: 'dispute:manual',
-            execute: () => atcApi.openDispute(manualChannelId.trim(), settlementActorId || undefined, settlementTargetNonce ? Number(settlementTargetNonce) : undefined, settlementReason || 'OPS_PANEL_DISPUTE'),
+            execute: () => atcApi.openDispute({
+              channelId: manualChannelId.trim(),
+              actorUuid: settlementActorId || undefined,
+              targetNonce: settlementTargetNonce ? Number(settlementTargetNonce) : undefined,
+              reason: settlementReason || 'OPS_PANEL_DISPUTE',
+            }),
             errorLabel: 'SETTLEMENT_DISPUTE_FAILED',
             requestMessage: `SETTLEMENT_DISPUTE_REQUESTED ${manualChannelId.trim()}`,
             successMessage: `SETTLEMENT_DISPUTE_OPENED ${manualChannelId.trim()}`,
@@ -166,7 +171,12 @@ export const SettlementPanel: React.FC<CommonPanelProps> = ({ isDark, busy, stat
                 disabled={busy[disputeKey]}
                 onClick={() => runAction({
                   key: disputeKey,
-                  execute: () => atcApi.openDispute(channelId, settlementActorId || undefined, settlementTargetNonce ? Number(settlementTargetNonce) : undefined, settlementReason || 'OPS_PANEL_DISPUTE'),
+                  execute: () => atcApi.openDispute({
+                    channelId,
+                    actorUuid: settlementActorId || undefined,
+                    targetNonce: settlementTargetNonce ? Number(settlementTargetNonce) : undefined,
+                    reason: settlementReason || 'OPS_PANEL_DISPUTE',
+                  }),
                   errorLabel: 'SETTLEMENT_DISPUTE_FAILED',
                   requestMessage: `SETTLEMENT_DISPUTE_REQUESTED ${channelId}`,
                   successMessage: `SETTLEMENT_DISPUTE_OPENED ${channelId}`,

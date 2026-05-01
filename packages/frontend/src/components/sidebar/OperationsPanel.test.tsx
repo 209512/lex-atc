@@ -50,7 +50,12 @@ describe('OperationsPanel', () => {
     fireEvent.click(screen.getByTestId('settle-slash-channel:agent-1'));
 
     await waitFor(() => {
-      expect(apiMock.openDispute).toHaveBeenCalledWith('channel:agent-1', 'executor-9', 11, 'MANUAL_REVIEW');
+      expect(apiMock.openDispute).toHaveBeenCalledWith({
+        channelId: 'channel:agent-1',
+        actorUuid: 'executor-9',
+        targetNonce: 11,
+        reason: 'MANUAL_REVIEW',
+      });
       expect(apiMock.slashSettlement).toHaveBeenCalledWith('channel:agent-1', 'executor-9', 'MANUAL_REVIEW');
     });
   });
