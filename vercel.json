@@ -1,33 +1,12 @@
 {
   "version": 2,
-  "builds": [
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm -C packages/frontend build",
+  "outputDirectory": "packages/frontend/dist",
+  "rewrites": [
     {
-      "src": "packages/frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "^/mockServiceWorker\\.js$",
-      "dest": "/packages/frontend/mockServiceWorker.js"
-    },
-    {
-      "src": "^/assets/(.*)$",
-      "dest": "/packages/frontend/assets/$1"
-    },
-    {
-      "src": "^/vite\\.svg$",
-      "dest": "/packages/frontend/vite.svg"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/packages/frontend/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
