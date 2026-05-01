@@ -1,6 +1,6 @@
 // src/components/monitoring/radar/AgentDetailPopup.tsx
 import { useShallow } from 'zustand/react/shallow';
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import { Html } from '@react-three/drei';
 import { X, Pause, Activity, Cpu, Database } from 'lucide-react'; 
 import clsx from 'clsx';
@@ -44,16 +44,46 @@ export const AgentDetailPopup = ({
 
     const { isPaused, isForced, statusLabel, isLocked } = useAgentLogic(safeAgent, state);
 
-    if (!agent || !position) return null;
-
-    const verticalOffset = -180; 
+    const popupRef = useRef<HTMLDivElement>(null);
     const riskVector = normalizeRiskVector8((safeAgent as any).riskVector);
     const vectorDisplayMode = uiPreferences?.riskVector?.displayMode ?? 'full';
     const axes = getAxesForDisplayMode(vectorDisplayMode);
+    const agentKey = agent?.id ?? '';
+
+    useLayoutEffect(() => {
+        if (!agentKey) return;
+        const el = popupRef.current;
+        if (!el) return;
+        const pad = 10;
+        const baseY = isCompact ? -120 : -150;
+
+        const clamp = () => {
+            let dx = 0;
+            let dy = baseY;
+            el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+
+            const rect = el.getBoundingClientRect();
+            if (rect.top < pad) dy += pad - rect.top;
+            if (rect.bottom > window.innerHeight - pad) dy -= rect.bottom - (window.innerHeight - pad);
+            if (rect.left < pad) dx += pad - rect.left;
+            if (rect.right > window.innerWidth - pad) dx -= rect.right - (window.innerWidth - pad);
+            el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+        };
+
+        const raf = requestAnimationFrame(clamp);
+        window.addEventListener('resize', clamp);
+        return () => {
+            cancelAnimationFrame(raf);
+            window.removeEventListener('resize', clamp);
+        };
+    }, [agentKey, isCompact]);
+
+    if (!agent || !position) return null;
 
     return (
         <Html position={position} center zIndexRange={[100, 0]} pointerEvents="auto" occlude={false}>
              <div 
+                ref={popupRef}
                 className={clsx(
                     "p-4 rounded-lg border shadow-2xl backdrop-blur-xl transition-all duration-300 select-none",
                     "pointer-events-auto",
@@ -61,7 +91,7 @@ export const AgentDetailPopup = ({
                     isForced ? "ring-2 ring-purple-500 bg-purple-900/20" : 
                     (isDark ? "bg-[#0d1117]/95 border-gray-700 text-gray-300" : "bg-white/95 border-slate-300 text-slate-700")
                 )}
-                style={{ transform: `translateY(${verticalOffset}px)`, cursor: 'default' }} 
+                style={{ cursor: 'default' }} 
                 onPointerDown={(e) => { e.stopPropagation(); }}
                 onPointerUp={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); }}

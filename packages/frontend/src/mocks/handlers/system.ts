@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { SYSTEM, LOG_DOMAINS, LOG_STAGES, LOG_ACTIONS } from '@lex-atc/shared';
-import { db, broadcast, addLog } from '../core/db';
+import { db, broadcast, addLog, setGlobalStop } from '../core/db';
 
 export const systemHandlers = [
   http.post('/api/override', () => {
@@ -29,7 +29,7 @@ export const systemHandlers = [
 
   http.post('/api/stop', async ({ request }) => {
     const body = (await request.json()) as { enable: boolean };
-    db.atcState.globalStop = Boolean(body.enable);
+    setGlobalStop(Boolean(body.enable));
     addLog('SYSTEM', `Global Stop ${body.enable ? 'Enabled' : 'Disabled'}`, 'system', {
       domain: LOG_DOMAINS.SYSTEM,
       stage: LOG_STAGES.EXECUTED,
@@ -39,4 +39,3 @@ export const systemHandlers = [
     return HttpResponse.json({ success: true, scheduled: true });
   }),
 ];
-
