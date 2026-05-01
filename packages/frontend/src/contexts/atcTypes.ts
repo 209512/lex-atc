@@ -32,6 +32,7 @@ export interface Agent {
   isPaused?: boolean;
   color?: string;
   position: [number, number, number];
+  orbit?: { seed: number; spawnTime: number; totalPausedMs: number };
   orbitalLevel?: OrbitalLevel;
   riskVector?: RiskVector8;
   resource?: string;

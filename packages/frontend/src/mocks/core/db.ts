@@ -26,6 +26,14 @@ export interface AgentMeta {
   riskVector?: RiskVector8;
 }
 
+export interface OrbitMeta {
+  seed: number;
+  spawnTime: number;
+  totalPausedMs: number;
+}
+
+export type AgentWithOrbit = LexAgent & { orbit?: OrbitMeta };
+
 export const makeProposal = (
   adminId: string,
   action: string,
@@ -61,7 +69,7 @@ interface MockDB {
 }
 
 export interface StatePayload {
-  agents: LexAgent[];
+  agents: AgentWithOrbit[];
   state: Record<string, any>;
 }
 
@@ -204,8 +212,20 @@ export const db: MockDB = (() => {
 })();
 
 export const broadcast = () => {
+  const agents: AgentWithOrbit[] = db.agents.map((a) => {
+    const meta = db.agentMetas[a.uuid];
+    if (!meta) return a;
+    return {
+      ...a,
+      orbit: {
+        seed: meta.seed,
+        spawnTime: meta.spawnTime,
+        totalPausedMs: meta.totalPausedMs,
+      },
+    };
+  });
   const payload: StatePayload = {
-    agents: db.agents,
+    agents,
     state: {
       ...db.atcState,
       logs: db.logs.slice(-100),

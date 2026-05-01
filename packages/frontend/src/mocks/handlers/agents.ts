@@ -10,6 +10,13 @@ export const agentHandlers = [
       displayName: a.displayName || a.id,
       priority: db.atcState.priorityAgents.includes(a.uuid),
       isPaused: a.isPaused ?? false,
+      orbit: db.agentMetas[a.uuid]
+        ? {
+            seed: db.agentMetas[a.uuid].seed,
+            spawnTime: db.agentMetas[a.uuid].spawnTime,
+            totalPausedMs: db.agentMetas[a.uuid].totalPausedMs,
+          }
+        : undefined,
       l4Phase: 'SANDBOX',
       onchainStatus: null,
       onchainTxid: null,
@@ -162,4 +169,3 @@ export const agentHandlers = [
     return HttpResponse.json({ success: true, scheduled: true });
   }),
 ];
-

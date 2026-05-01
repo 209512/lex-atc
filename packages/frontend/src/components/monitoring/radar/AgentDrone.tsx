@@ -11,6 +11,7 @@ import { useUIStore } from '@/store/ui';
 import { useAudio } from '@/hooks/system/useAudio';
 import { AgentDetailPopup } from '@/components/monitoring/radar/AgentDetailPopup';
 import { LOG_LEVELS } from '@/utils/logStyles';
+import { getOrbitPosition } from '@/utils/orbit';
 import { Tooltip } from '@/components/common/Tooltip';
 import { RISK_AXIS_META, RISK_AXIS_INDEX, normalizeRiskVector8, splitRiskVectorRows, getAxesForDisplayMode } from '@/utils/riskVector';
 import type { RiskAxisKey } from '@/utils/riskVector';
@@ -47,6 +48,8 @@ export const AgentDrone = ({
     const prevLocked = useRef(isLocked);
     
     const isResuming = useRef(false);
+    const stopStartedAt = useRef<number | null>(null);
+    const totalStoppedMs = useRef(0);
     const [isHovered, setIsHovered] = useState(false);
     const hoverHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const noiseSeed = useMemo(() => {
@@ -92,6 +95,33 @@ export const AgentDrone = ({
         }
     }, [isPaused, isGlobalStopped]);
 
+    useEffect(() => {
+        if (isGlobalStopped) {
+            if (!stopStartedAt.current) stopStartedAt.current = Date.now();
+            return;
+        }
+        if (stopStartedAt.current) {
+            totalStoppedMs.current += Date.now() - stopStartedAt.current;
+            stopStartedAt.current = null;
+        }
+    }, [isGlobalStopped]);
+
+    const orbitSeed = typeof (agentData as any)?.orbit?.seed === 'number' ? (agentData as any).orbit.seed : null;
+    const orbitSpawnTime = typeof (agentData as any)?.orbit?.spawnTime === 'number' ? (agentData as any).orbit.spawnTime : null;
+    const orbitTotalPausedMs = typeof (agentData as any)?.orbit?.totalPausedMs === 'number' ? (agentData as any).orbit.totalPausedMs : 0;
+
+    useEffect(() => {
+        if (orbitSeed === null || orbitSpawnTime === null) return;
+        const stoppedMs = totalStoppedMs.current + (stopStartedAt.current ? (Date.now() - stopStartedAt.current) : 0);
+        const activeTime = Math.max(0, Date.now() - orbitSpawnTime - orbitTotalPausedMs - stoppedMs);
+        const p = getOrbitPosition(orbitSeed, activeTime);
+        currentPos.current.set(p[0], p[1], p[2]);
+        targetVec.current.set(p[0], p[1], p[2]);
+        if (groupRef.current && !(isPaused || isGlobalStopped)) {
+            groupRef.current.position.copy(currentPos.current);
+        }
+    }, [orbitSeed, orbitSpawnTime, orbitTotalPausedMs, isPaused, isGlobalStopped]);
+
     useFrame((frameState) => {
         if (!groupRef.current) return;
 
@@ -106,7 +136,14 @@ export const AgentDrone = ({
         if (effectivelyPaused) {
             groupRef.current.position.copy(currentPos.current);
         } else {
-            targetVec.current.set(position[0], position[1], position[2]);
+            if (orbitSeed !== null && orbitSpawnTime !== null) {
+                const stoppedMs = totalStoppedMs.current + (stopStartedAt.current ? (Date.now() - stopStartedAt.current) : 0);
+                const activeTime = Math.max(0, Date.now() - orbitSpawnTime - orbitTotalPausedMs - stoppedMs);
+                const p = getOrbitPosition(orbitSeed, activeTime);
+                targetVec.current.set(p[0], p[1], p[2]);
+            } else {
+                targetVec.current.set(position[0], position[1], position[2]);
+            }
 
             const lerpFactor = isResuming.current ? 0.02 : 0.06;
 
