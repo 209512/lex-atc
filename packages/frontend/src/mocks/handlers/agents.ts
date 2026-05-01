@@ -149,7 +149,11 @@ export const agentHandlers = [
       db.atcState.priorityAgents = db.atcState.priorityAgents.filter(id => id !== uuid);
     }
     updateAgent(uuid, { priority: body.enable });
-    addLog(uuid, `Priority ${body.enable ? 'Enabled' : 'Disabled'}`, 'system');
+    addLog(uuid, `Priority ${body.enable ? 'Enabled' : 'Disabled'}`, 'system', {
+      domain: LOG_DOMAINS.AGENT,
+      stage: LOG_STAGES.EXECUTED,
+      actionKey: LOG_ACTIONS.TOGGLE_PRIORITY,
+    });
     broadcast();
     return HttpResponse.json({ success: true });
   }),
@@ -161,7 +165,11 @@ export const agentHandlers = [
     db.atcState.forcedCandidate = uuid;
     db.atcState.holder = uuid;
     updateAgent(uuid, { status: 'ACTIVE', activity: 'Lock transferred by admin' });
-    addLog(uuid, '✨ Lock Transferred by Admin', 'success');
+    addLog(uuid, '✨ Lock Transferred by Admin', 'success', {
+      domain: LOG_DOMAINS.LOCK,
+      stage: LOG_STAGES.EXECUTED,
+      actionKey: LOG_ACTIONS.TRANSFER_LOCK,
+    });
     broadcast();
     return HttpResponse.json({ success: true, scheduled: true });
   }),

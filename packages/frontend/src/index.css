@@ -51,6 +51,21 @@
     background: #475569;
   }
 
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .blacklist-hatch {
+    background-image: repeating-linear-gradient(45deg, rgba(148, 163, 184, 0.25) 0, rgba(148, 163, 184, 0.25) 2px, transparent 2px, transparent 6px);
+  }
+  .dark .blacklist-hatch {
+    background-image: repeating-linear-gradient(45deg, rgba(71, 85, 105, 0.5) 0, rgba(71, 85, 105, 0.5) 2px, transparent 2px, transparent 6px);
+  }
+
   .scanline::before {
     content: " ";
     display: block;

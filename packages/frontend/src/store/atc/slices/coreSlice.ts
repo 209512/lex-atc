@@ -104,7 +104,6 @@ export const createATCCoreSlice: StateCreator<ATCStore, [], [], ATCCoreSlice> = 
       get().addLog(`PAUSE_FAILED: ${err.message}`, 'error', uuid);
       get().markAction(uuid, 'status', null);
     });
-    get().addLog(paused ? 'SUSPENDED' : 'RESUMED', 'system', uuid);
   },
 
   togglePriority: (uuid: string, priority: boolean) => {
@@ -116,7 +115,6 @@ export const createATCCoreSlice: StateCreator<ATCStore, [], [], ATCCoreSlice> = 
     get().markAction(uuid, 'priority', priority);
     get().setAgents((prev) => prev.map((a) => (a.id === uuid ? { ...a, priority } : a)));
 
-    get().addLog(priority ? 'PRIORITY_SET' : 'PRIORITY_REMOVED', priority ? 'warn' : 'info', uuid);
     atcApi.togglePriority(uuid, priority).catch((err) => {
       get().playAlert();
       get().addLog(`PRIORITY_FAILED: ${err.message}`, 'error', uuid);
@@ -136,7 +134,6 @@ export const createATCCoreSlice: StateCreator<ATCStore, [], [], ATCCoreSlice> = 
 
     const prevAgents = [...agents];
     get().setAgents((prev) => prev.filter((a) => a.id !== uuid));
-    get().addLog(`TERMINATING`, 'error', uuid);
 
     atcApi.terminateAgent(uuid)
       .then(() => {
@@ -153,7 +150,6 @@ export const createATCCoreSlice: StateCreator<ATCStore, [], [], ATCCoreSlice> = 
     get().playAlert();
     get().markAction('', 'forcedCandidate', uuid);
     get().setState((prev) => ({ ...prev, forcedCandidate: uuid }));
-    get().addLog(`FORCE_TRANSFER_INITIATED`, 'system', uuid);
 
     atcApi.transferLock(uuid).catch((err) => {
       get().addLog(`TRANSFER_FAILED: ${err.message}`, 'error', uuid);
@@ -179,7 +175,6 @@ export const createATCCoreSlice: StateCreator<ATCStore, [], [], ATCCoreSlice> = 
     get().playAlert();
     get().markAction('', 'overrideSignal', true);
     get().setState((prev) => ({ ...prev, overrideSignal: true, holder: 'Human-Operator' }));
-    get().addLog('EMERGENCY OVERRIDE', 'critical');
 
     return atcApi.triggerOverride().catch((err) => {
       get().addLog(`OVERRIDE_FAILED: ${err.message}`, 'error');
@@ -191,7 +186,6 @@ export const createATCCoreSlice: StateCreator<ATCStore, [], [], ATCCoreSlice> = 
     if (!get().isAdminMuted) audioService.play(1100, 'sine', 0.1, 0.05);
     get().markAction('', 'overrideSignal', false);
     get().setState((prev) => ({ ...prev, overrideSignal: false, holder: null }));
-    get().addLog('OVERRIDE RELEASED', 'info');
 
     return atcApi.releaseLock().catch((err) => {
       get().addLog(`RELEASE_FAILED: ${err.message}`, 'error');

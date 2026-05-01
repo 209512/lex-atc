@@ -49,7 +49,14 @@ export const TerminalLog = () => {
 
   useClampFloatingPanel('terminal', { width: Number(panel.width ?? 420), height: Number(panel.height ?? 320) });
 
-  const { filter, domainFilter, actionKeyFilter, showOnlyEconomy, autoScroll } = uiPreferences.terminal;
+  const terminalPrefs: any = uiPreferences.terminal || {};
+  const filter = terminalPrefs.filter ?? 'ALL';
+  const domainFilter = terminalPrefs.domainFilter ?? 'ALL';
+  const actionKeyFilter = terminalPrefs.actionKeyFilter ?? 'ALL';
+  const excludedFilters = Array.isArray(terminalPrefs.excludedFilters) ? terminalPrefs.excludedFilters : [];
+  const excludedDomains = Array.isArray(terminalPrefs.excludedDomains) ? terminalPrefs.excludedDomains : [];
+  const showOnlyEconomy = Boolean(terminalPrefs.showOnlyEconomy);
+  const autoScroll = terminalPrefs.autoScroll !== false;
 
   const agentNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -81,14 +88,23 @@ export const TerminalLog = () => {
         if (showOnlyEconomy && !isEconomyLog(String((l as any).message || ''), (l as any).type)) return false;
         
         if (!matchesPrimaryFilter(filter, l)) return false;
+        if (String(filter).toUpperCase() === 'ALL' && Array.isArray(excludedFilters) && excludedFilters.length > 0) {
+          for (const ex of excludedFilters) {
+            if (matchesPrimaryFilter(String(ex), l)) return false;
+          }
+        }
         
-        if (domainFilter !== 'ALL' && String((l as any).domain || '') !== String(domainFilter)) return false;
+        const logDomain = String((l as any).domain || '');
+        if (domainFilter !== 'ALL' && logDomain !== String(domainFilter)) return false;
+        if (domainFilter === 'ALL' && Array.isArray(excludedDomains) && excludedDomains.length > 0) {
+          if (excludedDomains.some((d) => String(d) === logDomain)) return false;
+        }
         
         if (actionKeyFilter !== 'ALL' && l.actionKey !== actionKeyFilter) return false;
 
         return true;
     });
-  }, [state?.logs, filter, domainFilter, actionKeyFilter, showOnlyEconomy]);
+  }, [state?.logs, filter, domainFilter, actionKeyFilter, showOnlyEconomy, excludedFilters, excludedDomains]);
 
   const saveLogs = () => {
       const content = (state?.logs || []).map(l => 
@@ -169,6 +185,7 @@ export const TerminalLog = () => {
                                     <TerminalSidebar 
                                         filter={filter}
                                         showOnlyEconomy={showOnlyEconomy}
+                                        excludedFilters={excludedFilters}
                                         updateTerminalPreferences={updateTerminalPreferences}
                                         isDark={isDark}
                                     />
@@ -180,6 +197,7 @@ export const TerminalLog = () => {
                                             updateTerminalPreferences={updateTerminalPreferences}
                                             actionFilterGroups={actionFilterGroups}
                                             domainFilter={domainFilter}
+                                            excludedDomains={excludedDomains}
                                             isDark={isDark}
                                         />
                                         <LogList 
