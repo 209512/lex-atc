@@ -14,8 +14,20 @@
       "handle": "filesystem"
     },
     {
+      "src": "^/mockServiceWorker\\.js$",
+      "dest": "/packages/frontend/mockServiceWorker.js"
+    },
+    {
+      "src": "^/assets/(.*)$",
+      "dest": "/packages/frontend/assets/$1"
+    },
+    {
+      "src": "^/vite\\.svg$",
+      "dest": "/packages/frontend/vite.svg"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/packages/frontend/index.html"
     }
   ]
 }
