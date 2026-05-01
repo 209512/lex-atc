@@ -142,7 +142,8 @@ export const AgentDrone = ({
             const rotSpeed = isForced ? (baseRot + 0.08) : baseRot;
             groupRef.current.rotation.y += rotSpeed;
             if (!reducedEffects) {
-                groupRef.current.position.y = baseY + Math.sin(frameState.clock.elapsedTime * 0.8) * 0.0015;
+                if (isHovered) groupRef.current.position.y = baseY;
+                else groupRef.current.position.y = baseY + Math.sin(frameState.clock.elapsedTime * 0.8) * 0.0015;
             }
         }
 
@@ -279,7 +280,7 @@ export const AgentDrone = ({
                                         {keys.map((k) => {
                                             const v = rv[RISK_AXIS_INDEX[k] as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7];
                                             return (
-                                                <div key={k} className="grid grid-cols-[16px_minmax(0,1fr)] items-center gap-x-1 min-w-0">
+                                                <div key={k} className="grid grid-cols-[14px_minmax(0,1fr)] items-center gap-x-0.5 min-w-0">
                                                     <Tooltip content={`${RISK_AXIS_META[k as keyof typeof RISK_AXIS_META].name} — ${RISK_AXIS_META[k as keyof typeof RISK_AXIS_META].description}`} position="top">
                                                         <span className="opacity-70">{k}:</span>
                                                     </Tooltip>

@@ -109,9 +109,9 @@ export const ControlTower = () => {
     const isTacticalOpen = uiPreferences.panels.tactical?.isOpen !== false;
 
     const closedPanels = [];
-    if (!isQueueOpen && viewMode === 'operator') closedPanels.push({ id: 'queue', label: 'QUEUE' });
-    if (!isTacticalOpen && viewMode === 'operator') closedPanels.push({ id: 'tactical', label: 'TACTICAL' });
-    if (!isTerminalOpen && viewMode === 'operator') closedPanels.push({ id: 'terminal', label: 'TERMINAL' });
+    if (!isQueueOpen && viewMode !== 'executive') closedPanels.push({ id: 'queue', label: 'QUEUE' });
+    if (!isTacticalOpen && viewMode !== 'executive') closedPanels.push({ id: 'tactical', label: 'TACTICAL' });
+    if (!isTerminalOpen && viewMode !== 'executive') closedPanels.push({ id: 'terminal', label: 'TERMINAL' });
     if (!isL4Open && viewMode !== 'executive') closedPanels.push({ id: 'l4', label: 'L4' });
 
     return (
