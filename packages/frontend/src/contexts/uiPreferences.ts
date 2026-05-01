@@ -42,6 +42,8 @@ export interface UIPreferences {
     filter: string;
     domainFilter: TerminalDomainFilter;
     actionKeyFilter: string;
+    excludedFilters: string[];
+    excludedDomains: LogDomain[];
     showOnlyEconomy: boolean;
     autoScroll: boolean;
   };
@@ -102,6 +104,8 @@ export const createDefaultUIPreferences = (): UIPreferences => ({
     filter: 'ALL',
     domainFilter: 'ALL',
     actionKeyFilter: 'ALL',
+    excludedFilters: [],
+    excludedDomains: [],
     showOnlyEconomy: false,
     autoScroll: true,
   },
