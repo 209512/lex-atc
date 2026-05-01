@@ -1,4 +1,6 @@
 // shared/src/types/agent.ts
+import type { OrbitalLevel, RiskVector8 } from './risk';
+
 export type AgentStatus = 'IDLE' | 'WAITING' | 'ACTIVE' | 'PAUSED' | 'SLASHED' | 'MINING' | 'ERROR';
 
 export interface SovereignAccount {
@@ -22,6 +24,8 @@ export interface LexAgent {
   model: string;
   provider?: string;
   position: [number, number, number];
+  orbitalLevel?: OrbitalLevel;
+  riskVector?: RiskVector8;
   lastUpdated: number;
   priority?: boolean;
   color?: string;
