@@ -763,9 +763,9 @@ class SettlementEngine {
         // Push to UI state logs to trigger the frontend Slashing Heatmap and UI alerts
         if (typeof this.atcService.addLog === 'function') {
             this.atcService.addLog(agentUuid, `🚨 Slashed: ${normalizedReason}`, 'critical', { 
-                stage: 'EXECUTED', 
-                domain: 'ECONOMY', 
-                actionKey: 'SETTLEMENT_SLASH',
+                stage: LOG_STAGES.EXECUTED, 
+                domain: LOG_DOMAINS.ECONOMY, 
+                actionKey: LOG_ACTIONS.SETTLEMENT_SLASH,
                 agentId: agentUuid,
                 metrics: {
                     conflictRate: 100,
