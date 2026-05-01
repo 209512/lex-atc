@@ -21,13 +21,13 @@ export const L4Legend = ({ compact = false }: { compact?: boolean }) => {
         <div className={clsx('text-[11px] font-mono font-bold uppercase tracking-[0.18em]', isDark ? 'text-gray-300' : 'text-slate-800')}>
           Status Legend
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center justify-end gap-1 min-w-0">
           {axisOrder.map((a) => (
             <button
               key={a}
               onClick={() => setAxis(a)}
               className={clsx(
-                'px-2 py-1 rounded-md text-[9px] font-mono uppercase tracking-[0.12em] border transition',
+                'px-2 py-1 rounded-md text-[9px] font-mono uppercase tracking-[0.12em] border transition shrink-0',
                 axis === a
                   ? (isDark ? 'bg-blue-600/20 border-blue-500/40 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700')
                   : (isDark ? 'bg-black/30 border-white/10 text-gray-400 hover:border-blue-500/30' : 'bg-white border-slate-200 text-slate-500 hover:border-blue-200')

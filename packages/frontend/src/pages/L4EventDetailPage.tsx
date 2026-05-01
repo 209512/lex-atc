@@ -48,7 +48,7 @@ export const L4EventDetailPage = () => {
           </div>
         </div>
 
-        <div className="mt-4 flex items-start justify-between gap-4">
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="min-w-0">
             <div className={clsx('text-[18px] font-black tracking-tight', isDark ? 'text-white/80' : 'text-slate-900')}>
               {snap.entityKind} · {formatId(snap.entityId)}
@@ -57,7 +57,7 @@ export const L4EventDetailPage = () => {
               occurredAt: {new Date(snap.occurredAt).toLocaleString()}
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <StatusBadge axis="isolation" state={snap.states.isolation} />
             <StatusBadge axis="settlement" state={snap.states.settlement} />
             <StatusBadge axis="rollback" state={snap.states.rollback} />

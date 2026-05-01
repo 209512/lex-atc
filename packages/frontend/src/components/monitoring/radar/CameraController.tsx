@@ -4,6 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useRef, useEffect } from 'react';
 import { useUIStore } from '@/store/ui';
+import { useATCStore } from '@/store/atc';
 import { getOrbitPosition } from '@/utils/orbit';
 import type { Agent } from '@/contexts/atcTypes';
 
@@ -15,6 +16,7 @@ interface Props {
 export const CameraController = ({ targetPosition, targetAgent }: Props) => {
     const { camera, controls } = useThree();
     const { selectedAgentId  } = useUIStore(useShallow(s => ({ selectedAgentId: s.selectedAgentId })));
+    const { globalStop } = useATCStore(useShallow(s => ({ globalStop: !!s.state?.globalStop })));
     const targetVec = new THREE.Vector3();
     const initialCameraPos = useRef<THREE.Vector3 | null>(null);
     const initialTarget = useRef<THREE.Vector3 | null>(null);
@@ -75,9 +77,10 @@ export const CameraController = ({ targetPosition, targetAgent }: Props) => {
         const orbitSpawnTime = typeof (targetAgent as any)?.orbit?.spawnTime === 'number' ? (targetAgent as any).orbit.spawnTime : null;
         const orbitTotalPausedMs = typeof (targetAgent as any)?.orbit?.totalPausedMs === 'number' ? (targetAgent as any).orbit.totalPausedMs : 0;
         const hasOrbitTarget = orbitSeed !== null && orbitSpawnTime !== null;
+        const isPaused = globalStop || String((targetAgent as any)?.status || '').toLowerCase() === 'paused' || (targetAgent as any)?.isPaused === true;
 
         if (selectedAgentId && (targetAgent || targetPosition)) {
-            if (hasOrbitTarget) {
+            if (!isPaused && hasOrbitTarget) {
                 const activeTime = Math.max(0, Date.now() - orbitSpawnTime - orbitTotalPausedMs);
                 const p = getOrbitPosition(orbitSeed, activeTime);
                 targetVec.set(p[0], p[1], p[2]);
