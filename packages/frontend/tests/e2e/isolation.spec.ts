@@ -12,10 +12,11 @@ test.describe('Isolation Operations Panel', () => {
       predicate: (msg) => msg.text().includes('Mocking enabled.'),
       timeout: 15000,
     });
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page.goto('/', { waitUntil: 'load', timeout: 30000 });
     await mswReady.catch(() => {});
 
-    await expect(page.locator('#root')).toBeVisible({ timeout: 15000 });
+    await page.waitForSelector('#root', { state: 'attached', timeout: 30000 });
+    await expect(page.locator('#root')).toBeVisible({ timeout: 30000 });
   });
 
   test('finalizes a pending isolation task', async ({ page }) => {

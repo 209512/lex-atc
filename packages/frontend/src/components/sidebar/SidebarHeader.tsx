@@ -11,11 +11,13 @@ import { frontendConfig } from '@/config/runtime';
 
 export const SidebarHeader = ({ onOpenSettings }: { onOpenSettings: () => void }) => {
     const { state  } = useATCStore(useShallow(s => ({ state: s.state })));
-    const { isDark, setIsDark, setSidebarWidth, uiPreferences, updateUIPreferences  } = useUIStore(useShallow(s => ({ isDark: s.isDark, setIsDark: s.setIsDark, setSidebarWidth: s.setSidebarWidth, uiPreferences: s.uiPreferences, updateUIPreferences: s.updateUIPreferences })));
+    const { isDark, sidebarWidth, setIsDark, setSidebarWidth, uiPreferences, updateUIPreferences  } = useUIStore(useShallow(s => ({ isDark: s.isDark, sidebarWidth: s.sidebarWidth, setIsDark: s.setIsDark, setSidebarWidth: s.setSidebarWidth, uiPreferences: s.uiPreferences, updateUIPreferences: s.updateUIPreferences })));
     const isHuman = state.holder && state.holder.includes('Human');
     const holderLabel = state.holder ? String(state.holder) : 'NONE';
     const mswFallback = Boolean((window as any)['__LEX_ATC_MSW_DISABLED__']);
     const modeLabel = mswFallback ? 'BACKEND (FALLBACK)' : (frontendConfig.deployment.mode === 'standalone' ? 'SIMULATION' : 'BACKEND');
+    const isCompact = sidebarWidth > 0 && sidebarWidth < 360;
+    const badgeText = isCompact ? (modeLabel.startsWith('SIMULATION') ? 'SIM' : (modeLabel.startsWith('BACKEND') ? 'API' : modeLabel)) : modeLabel;
 
     return (
         <div className={clsx(
@@ -32,14 +34,15 @@ export const SidebarHeader = ({ onOpenSettings }: { onOpenSettings: () => void }
                             <span className="truncate block min-w-0">TRAFFIC CONTROL</span>
                             <span
                                 className={clsx(
-                                    'shrink-0 px-1.5 py-0.5 rounded border text-[9px] font-bold tracking-[0.14em] uppercase',
+                                    'min-w-0 max-w-[110px] truncate px-1.5 py-0.5 rounded border font-bold uppercase',
+                                    isCompact ? 'text-[8px] tracking-[0.1em]' : 'text-[9px] tracking-[0.14em]',
                                     modeLabel.startsWith('SIMULATION') && (isDark ? 'border-amber-400/30 bg-amber-400/10 text-amber-200' : 'border-amber-300 bg-amber-50 text-amber-800'),
                                     modeLabel.startsWith('BACKEND') && (isDark ? 'border-sky-400/30 bg-sky-400/10 text-sky-200' : 'border-sky-300 bg-sky-50 text-sky-800'),
                                 )}
                                 data-testid="deployment-mode-badge"
                                 title={frontendConfig.api.baseUrl}
                             >
-                                {modeLabel}
+                                {badgeText}
                             </span>
                         </h2>
                     </Tooltip>

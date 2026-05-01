@@ -280,7 +280,7 @@ export const AgentDrone = ({
                                         {keys.map((k) => {
                                             const v = rv[RISK_AXIS_INDEX[k] as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7];
                                             return (
-                                                <div key={k} className="grid grid-cols-[14px_minmax(0,1fr)] items-center gap-x-0.5 min-w-0">
+                                                <div key={k} className="grid grid-cols-[12px_minmax(0,1fr)] items-center gap-x-0.5 min-w-0">
                                                     <Tooltip content={`${RISK_AXIS_META[k as keyof typeof RISK_AXIS_META].name} — ${RISK_AXIS_META[k as keyof typeof RISK_AXIS_META].description}`} position="top">
                                                         <span className="opacity-70">{k}:</span>
                                                     </Tooltip>

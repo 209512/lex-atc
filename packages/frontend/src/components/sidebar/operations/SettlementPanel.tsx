@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import clsx from 'clsx';
-import { Scale } from 'lucide-react';
+import { Scale, ChevronDown } from 'lucide-react';
 import { useATCStore } from '@/store/atc';
 import { useShallow } from 'zustand/react/shallow';
 import { atcApi } from '@/contexts/atcApi';
@@ -8,7 +8,7 @@ import { formatId } from '@/utils/agentIdentity';
 import { settlementHelp, settlementPresets } from '@/components/sidebar/opsConsoleConfig';
 import { getSectionCardClass, getRowCardClass, getActionButtonClass, Spinner, getInputClass, getHelpPillClass, CommonPanelProps, ActionStatusBadge } from './opsUiHelpers';
 
-export const SettlementPanel: React.FC<CommonPanelProps> = ({ isDark, busy, status, runAction }) => {
+export const SettlementPanel: React.FC<CommonPanelProps & { collapsed?: boolean; onToggleCollapsed?: () => void }> = ({ isDark, busy, status, runAction, collapsed = false, onToggleCollapsed }) => {
   const state = useATCStore(useShallow(s => s.state));
   const addLog = useATCStore(s => s.addLog);
   const [manualChannelId, setManualChannelId] = useState('');
@@ -32,14 +32,21 @@ export const SettlementPanel: React.FC<CommonPanelProps> = ({ isDark, busy, stat
   return (
     <section data-testid="ops-settlement" className={getSectionCardClass(isDark)}>
       <div className="flex items-center justify-between">
-        <div className={clsx('flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.12em]', isDark ? 'text-emerald-200' : 'text-emerald-800')}>
-          <Scale size={11} />
-          Settlement
-        </div>
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          className={clsx('flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.12em] min-w-0', isDark ? 'text-emerald-200' : 'text-emerald-800')}
+        >
+          <Scale size={11} className="shrink-0" />
+          <span className="truncate">Settlement</span>
+          <ChevronDown size={12} className={clsx('shrink-0 opacity-60 transition-transform', collapsed && '-rotate-90')} />
+        </button>
         <span className={clsx('text-[9px] font-mono', isDark ? 'text-gray-500' : 'text-slate-500')}>
           {channels.length} channels
         </span>
       </div>
+      {!collapsed && (
+        <>
       <div className="grid grid-cols-1 gap-1.5">
         <div className={clsx('text-[9px] font-mono uppercase tracking-[0.12em] opacity-70', isDark ? 'text-gray-500' : 'text-slate-500')}>
           Presets
@@ -221,6 +228,8 @@ export const SettlementPanel: React.FC<CommonPanelProps> = ({ isDark, busy, stat
           </div>
         );
       })}
+        </>
+      )}
     </section>
   );
 };

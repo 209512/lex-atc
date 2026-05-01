@@ -18,7 +18,7 @@ export const OperationsPanel = () => {
   const [busy, setBusy] = useState<BusyMap>({});
   const [status, setStatus] = useState<ActionStatusMap>({});
   const { setPolicyModalOpen } = useModalStore();
-  const [collapsed, setCollapsed] = useState<{ governance: boolean; isolation: boolean }>({ governance: false, isolation: false });
+  const [collapsed, setCollapsed] = useState<{ governance: boolean; isolation: boolean; settlement: boolean }>({ governance: false, isolation: false, settlement: false });
 
   const runAction = useCallback(async ({
     key,
@@ -129,7 +129,14 @@ export const OperationsPanel = () => {
           collapsed={collapsed.isolation}
           onToggleCollapsed={() => setCollapsed((prev) => ({ ...prev, isolation: !prev.isolation }))}
         />
-        <SettlementPanel isDark={isDark} busy={busy} status={status} runAction={runAction} />
+        <SettlementPanel
+          isDark={isDark}
+          busy={busy}
+          status={status}
+          runAction={runAction}
+          collapsed={collapsed.settlement}
+          onToggleCollapsed={() => setCollapsed((prev) => ({ ...prev, settlement: !prev.settlement }))}
+        />
       </div>
     </div>
   );

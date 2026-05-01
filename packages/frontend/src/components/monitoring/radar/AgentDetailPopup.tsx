@@ -99,8 +99,10 @@ export const AgentDetailPopup = ({
     if (!agent || !position) return null;
 
     const startDrag = (e: React.PointerEvent) => {
+        e.preventDefault();
         e.stopPropagation();
         dragRef.current = { active: true, startX: e.clientX, startY: e.clientY, originX: offsetRef.current.x, originY: offsetRef.current.y };
+        (e.currentTarget as any)?.setPointerCapture?.(e.pointerId);
 
         const onMove = (ev: PointerEvent) => {
             if (!dragRef.current.active) return;
@@ -120,6 +122,19 @@ export const AgentDetailPopup = ({
             dragRef.current.active = false;
             window.removeEventListener('pointermove', onMove);
             window.removeEventListener('pointerup', onUp);
+            window.removeEventListener('pointercancel', onCancel);
+            if (rafRef.current != null) {
+                cancelAnimationFrame(rafRef.current);
+                rafRef.current = null;
+            }
+            setOffset(offsetRef.current);
+        };
+
+        const onCancel = () => {
+            dragRef.current.active = false;
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            window.removeEventListener('pointercancel', onCancel);
             if (rafRef.current != null) {
                 cancelAnimationFrame(rafRef.current);
                 rafRef.current = null;
@@ -129,6 +144,7 @@ export const AgentDetailPopup = ({
 
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
+        window.addEventListener('pointercancel', onCancel);
     };
 
     return (
@@ -136,7 +152,7 @@ export const AgentDetailPopup = ({
              <div 
                 ref={popupRef}
                 className={clsx(
-                    "p-4 rounded-lg border shadow-2xl backdrop-blur-xl transition-all duration-300 select-none",
+                    "p-4 rounded-lg border shadow-2xl backdrop-blur-xl transition-colors duration-300 select-none",
                     "pointer-events-auto",
                     isCompact ? "w-48 scale-90" : "w-64",
                     isForced ? "ring-2 ring-purple-500 bg-purple-900/20" : 

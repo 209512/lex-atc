@@ -34,7 +34,7 @@ export const CentralHub = ({ isLocked, isOverride, holder, isDark, agents }: Cen
 
     return (
         <group ref={ref}>
-            <mesh>
+            <mesh raycast={() => null}>
                 <sphereGeometry args={[1, 16, 16]} />
                 <meshStandardMaterial 
                     color={isOverride ? LOG_LEVELS.critical.color : (isLocked ? LOG_LEVELS.success.color : LOG_LEVELS.info.color)}
