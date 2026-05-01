@@ -186,7 +186,7 @@ const loadFromStorage = (): MockDB | null => {
 };
 
 const persist = () => {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); } catch {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); } catch { void 0; }
 };
 
 // ── DB singleton ──────────────────────────────────────────────────────────────
@@ -226,14 +226,14 @@ export const broadcast = () => {
   };
 
   for (const fn of subscribers) {
-    try { fn(payload); } catch {}
+    try { fn(payload); } catch { void 0; }
   }
 
   try {
     const bc = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
     bc.postMessage(payload);
     bc.close();
-  } catch {}
+  } catch { void 0; }
 
   persist();
 };
