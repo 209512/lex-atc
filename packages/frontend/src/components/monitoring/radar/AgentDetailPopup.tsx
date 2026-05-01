@@ -101,28 +101,43 @@ export const AgentDetailPopup = ({
     const startDrag = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        dragRef.current = { active: true, startX: e.clientX, startY: e.clientY, originX: offsetRef.current.x, originY: offsetRef.current.y };
-        (e.currentTarget as any)?.setPointerCapture?.(e.pointerId);
+        const target = e.currentTarget as HTMLElement;
+        const pointerId = e.pointerId;
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const originX = offsetRef.current.x;
+        const originY = offsetRef.current.y;
+        let moved = false;
+
+        dragRef.current = { active: false, startX, startY, originX, originY };
+
+        const commitTransform = () => {
+            rafRef.current = null;
+            const el = popupRef.current;
+            if (el) el.style.transform = `translate3d(${offsetRef.current.x}px, ${offsetRef.current.y}px, 0)`;
+        };
 
         const onMove = (ev: PointerEvent) => {
-            if (!dragRef.current.active) return;
-            const dx = ev.clientX - dragRef.current.startX;
-            const dy = ev.clientY - dragRef.current.startY;
-            offsetRef.current = { x: dragRef.current.originX + dx, y: dragRef.current.originY + dy };
-            if (rafRef.current == null) {
-                rafRef.current = requestAnimationFrame(() => {
-                    rafRef.current = null;
-                    const el = popupRef.current;
-                    if (el) el.style.transform = `translate3d(${offsetRef.current.x}px, ${offsetRef.current.y}px, 0)`;
-                });
-            }
+            const dx = ev.clientX - startX;
+            const dy = ev.clientY - startY;
+            if (!moved && Math.abs(dx) + Math.abs(dy) < 3) return;
+            moved = true;
+            dragRef.current.active = true;
+            offsetRef.current = { x: originX + dx, y: originY + dy };
+            if (rafRef.current == null) rafRef.current = requestAnimationFrame(commitTransform);
         };
 
-        const onUp = () => {
+        const finish = () => {
             dragRef.current.active = false;
-            window.removeEventListener('pointermove', onMove);
-            window.removeEventListener('pointerup', onUp);
-            window.removeEventListener('pointercancel', onCancel);
+            target.removeEventListener('pointermove', onMove);
+            target.removeEventListener('pointerup', finish);
+            target.removeEventListener('pointercancel', finish);
+            window.removeEventListener('blur', finish);
+            try {
+                target.releasePointerCapture(pointerId);
+            } catch (err) {
+                void err;
+            }
             if (rafRef.current != null) {
                 cancelAnimationFrame(rafRef.current);
                 rafRef.current = null;
@@ -130,21 +145,15 @@ export const AgentDetailPopup = ({
             setOffset(offsetRef.current);
         };
 
-        const onCancel = () => {
-            dragRef.current.active = false;
-            window.removeEventListener('pointermove', onMove);
-            window.removeEventListener('pointerup', onUp);
-            window.removeEventListener('pointercancel', onCancel);
-            if (rafRef.current != null) {
-                cancelAnimationFrame(rafRef.current);
-                rafRef.current = null;
-            }
-            setOffset(offsetRef.current);
-        };
-
-        window.addEventListener('pointermove', onMove);
-        window.addEventListener('pointerup', onUp);
-        window.addEventListener('pointercancel', onCancel);
+        try {
+            target.setPointerCapture(pointerId);
+        } catch (err) {
+            void err;
+        }
+        target.addEventListener('pointermove', onMove);
+        target.addEventListener('pointerup', finish);
+        target.addEventListener('pointercancel', finish);
+        window.addEventListener('blur', finish);
     };
 
     return (

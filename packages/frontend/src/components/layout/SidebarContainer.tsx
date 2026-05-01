@@ -32,7 +32,7 @@ const SECTION_TITLES: Record<SidebarSectionKey, string> = {
 
 const SECTION_SUBTITLES: Record<SidebarSectionKey, string> = {
     overview: 'capacity · radar · local overview',
-    l4: 'status guide · hot items · axes',
+    l4: 'hot items · axes',
     ops: 'governance · isolation · settlement',
     agents: 'identity · queue · tactical controls'
 };
@@ -114,7 +114,25 @@ export const SidebarContainer = () => {
 
         switch (key) {
             case 'overview': return <SidebarSection key={key} {...props}><SystemStats /></SidebarSection>;
-            case 'l4': return <SidebarSection key={key} {...props}><L4StatusPanel /></SidebarSection>;
+            case 'l4': return (
+                <SidebarSection
+                    key={key}
+                    {...props}
+                    titleAddon={(
+                        <a
+                            href="/status-system"
+                            onClick={(e) => { e.stopPropagation(); }}
+                            aria-label="Status guide 열기"
+                            data-testid="l4-status-guide"
+                            className={clsx('shrink-0 text-[9px] font-mono uppercase tracking-[0.12em] opacity-80', isDark ? 'text-blue-200 hover:opacity-100' : 'text-blue-700 hover:opacity-100')}
+                        >
+                            guide
+                        </a>
+                    )}
+                >
+                    <L4StatusPanel />
+                </SidebarSection>
+            );
             case 'ops': return <SidebarSection key={key} {...props}><OperationsPanel /></SidebarSection>;
             case 'agents': return <SidebarSection key={key} {...props}><AgentList /></SidebarSection>;
             default: return null;

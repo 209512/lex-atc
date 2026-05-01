@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, ChevronDown } from 'lucide-react';
 interface SidebarSectionProps {
   title: string;
   subtitle?: string;
+  titleAddon?: React.ReactNode;
   isDark: boolean;
   isOpen: boolean;
   onToggle: () => void;
@@ -15,12 +16,13 @@ interface SidebarSectionProps {
   children: React.ReactNode;
 }
 
-export const SidebarSection = ({ title, subtitle, isDark, isOpen, onToggle, onMoveUp, onMoveDown, disableMoveUp = false, disableMoveDown = false, children }: SidebarSectionProps) => (
+export const SidebarSection = ({ title, subtitle, titleAddon, isDark, isOpen, onToggle, onMoveUp, onMoveDown, disableMoveUp = false, disableMoveDown = false, children }: SidebarSectionProps) => (
   <section className={clsx('rounded-xl border overflow-hidden', isDark ? 'border-gray-800 bg-[#0d1117]/70' : 'border-slate-200/70 bg-white/80')}>
     <div className={clsx('w-full flex items-center justify-between gap-3 px-3 py-2.5 border-b text-left', isDark ? 'border-white/5' : 'border-slate-200/70')}>
       <button onClick={onToggle} className={clsx('min-w-0 flex-1 text-left rounded transition px-1 py-0.5 -mx-1 -my-0.5', isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50')}>
-        <div className={clsx('text-[10px] font-mono font-bold uppercase tracking-[0.16em]', isDark ? 'text-gray-200' : 'text-slate-900')}>
-          {title}
+        <div className={clsx('text-[10px] font-mono font-bold uppercase tracking-[0.16em] flex items-center gap-2 min-w-0', isDark ? 'text-gray-200' : 'text-slate-900')}>
+          <span className="truncate">{title}</span>
+          {titleAddon}
         </div>
         {subtitle && (
           <div className={clsx('mt-0.5 text-[9px] font-mono truncate', isDark ? 'text-gray-500' : 'text-slate-500')}>

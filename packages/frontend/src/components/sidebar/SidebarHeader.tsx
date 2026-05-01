@@ -21,7 +21,8 @@ export const SidebarHeader = ({ onOpenSettings }: { onOpenSettings: () => void }
 
     return (
         <div className={clsx(
-            "p-4 border-b flex justify-between items-center transition-colors duration-500 min-w-0 shrink-0",
+            "border-b transition-colors duration-500 min-w-0 shrink-0",
+            isCompact ? "p-3 flex flex-col gap-2 items-stretch" : "p-4 flex justify-between items-center",
             isHuman ? "bg-red-500/10 border-red-500/30" : (isDark ? "border-gray-800" : "border-slate-200/40")
         )}>
             <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -30,7 +31,7 @@ export const SidebarHeader = ({ onOpenSettings }: { onOpenSettings: () => void }
                 </div>
                 <div className="min-w-0 flex-1">
                     <Tooltip content="Main Control Panel" position="bottom">
-                        <h2 className="font-bold text-sm tracking-wide min-w-0 flex items-center gap-2" data-testid="traffic-control-title">
+                        <h2 className="font-bold text-sm tracking-wide min-w-0 flex items-center gap-2 flex-wrap" data-testid="traffic-control-title">
                             <span className="truncate block min-w-0">TRAFFIC CONTROL</span>
                             <span
                                 className={clsx(
@@ -53,7 +54,7 @@ export const SidebarHeader = ({ onOpenSettings }: { onOpenSettings: () => void }
                     </div>
                 </div>
             </div>
-            <div className="flex items-center gap-1 shrink-0">
+            <div className={clsx("flex items-center gap-1 shrink-0", isCompact && "self-end")}>
                 <Tooltip content="Collapse to HUD Rail" position="bottom-left">
                     <button aria-label="HUD rail로 축소" onClick={() => setSidebarWidth(72)} className="p-2 rounded-md hover:bg-white/10">
                         <span className="sr-only">HUD rail로 축소</span>
