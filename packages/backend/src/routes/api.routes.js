@@ -153,7 +153,8 @@ module.exports = function setupApiRoutes(app, svc, middlewares) {
 
     // 2. Agent Management
     app.get('/api/agents/status', asyncRoute(async (req, res) => {
-        const status = await svc.getAgentStatus();
+        const includePosition = String(req.query.includePosition || '').toLowerCase();
+        const status = await svc.getAgentStatus({ includePosition: includePosition === '1' || includePosition === 'true' });
         res.json(status);
     }));
 
