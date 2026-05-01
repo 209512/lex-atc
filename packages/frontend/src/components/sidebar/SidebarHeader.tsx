@@ -2,7 +2,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import React from 'react';
 import clsx from 'clsx';
-import { ShieldAlert, Activity, Settings, EyeOff, Moon, Sun, Eye } from 'lucide-react';
+import { ShieldAlert, Activity, Settings, Moon, Sun, Eye } from 'lucide-react';
 import { Tooltip } from '@/components/common/Tooltip';
 import { useATCStore } from '@/store/atc';
 import { useUIStore } from '@/store/ui';
@@ -51,11 +51,6 @@ export const SidebarHeader = ({ onOpenSettings }: { onOpenSettings: () => void }
                 </div>
             </div>
             <div className="flex items-center gap-1 min-w-0">
-                <Tooltip content="Hide Sidebar" position="bottom-left">
-                    <button aria-label="사이드바 숨기기" onClick={() => setSidebarWidth(0)} className="p-2 rounded-md hover:bg-white/10">
-                        <EyeOff size={16} />
-                    </button>
-                </Tooltip>
                 <Tooltip content="Collapse to HUD Rail" position="bottom-left">
                     <button aria-label="HUD rail로 축소" onClick={() => setSidebarWidth(72)} className="p-2 rounded-md hover:bg-white/10">
                         <span className="sr-only">HUD rail로 축소</span>

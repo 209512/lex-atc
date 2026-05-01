@@ -1,9 +1,11 @@
 // src/components/layout/SidebarContainer.tsx
 import { useShallow } from 'zustand/react/shallow';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import { useUIStore } from '@/store/ui';
 import { useSidebarResize } from '@/hooks/system/useSidebarResize';
+import { Tooltip } from '@/components/common/Tooltip';
+import { ChevronRight } from 'lucide-react';
 
 import { SidebarHeader } from '@/components/sidebar/SidebarHeader';
 import { SidebarControlPanel } from '@/components/sidebar/SidebarControlPanel';
@@ -47,6 +49,8 @@ export const SidebarContainer = () => {
     })));
     const [uptime, setUptime] = useState(0);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const lastExpandedWidth = useRef(450);
+    const forcedFocusRail = useRef(false);
     
     const { sidebarRef, isResizing, handleMouseDown } = useSidebarResize(sidebarWidth, setSidebarWidth);
 
@@ -58,6 +62,27 @@ export const SidebarContainer = () => {
     const isHidden = sidebarWidth <= 0;
     const isCollapsed = sidebarWidth > 0 && sidebarWidth <= 100;
     const { viewMode } = uiPreferences;
+
+    useEffect(() => {
+        if (sidebarWidth > 100) lastExpandedWidth.current = sidebarWidth;
+    }, [sidebarWidth]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) return;
+        if (viewMode === 'focus') {
+            if (sidebarWidth > 100) {
+                forcedFocusRail.current = true;
+                setSidebarWidth(72);
+            }
+            return;
+        }
+        if (forcedFocusRail.current && sidebarWidth === 72 && lastExpandedWidth.current > 100) {
+            forcedFocusRail.current = false;
+            setSidebarWidth(lastExpandedWidth.current);
+        }
+    }, [viewMode, sidebarWidth, setSidebarWidth]);
 
     const { sectionOrder, sections } = uiPreferences.sidebar;
 
@@ -129,6 +154,21 @@ export const SidebarContainer = () => {
             )}
             style={getSidebarStyle()}
         >
+                {!isHidden && !isMobile && (
+                    <Tooltip content="Hide Sidebar" position="left">
+                        <button
+                            aria-label="사이드바 숨기기"
+                            onClick={() => setSidebarWidth(0)}
+                            className={clsx(
+                                "absolute top-1/2 -translate-y-1/2 left-0 -translate-x-full z-[70] h-16 w-6 rounded-l-xl border border-r-0 backdrop-blur-md flex items-center justify-center pointer-events-auto",
+                                isDark ? "bg-[#0d1117]/90 border-gray-800 text-gray-200 hover:bg-[#161b22]" : "bg-white/90 border-slate-200 text-slate-800 hover:bg-slate-50"
+                            )}
+                        >
+                            <ChevronRight size={16} className="opacity-80" />
+                        </button>
+                    </Tooltip>
+                )}
+
                 {isMobile && !isHidden && (
                     <div 
                         className="w-full h-6 flex items-center justify-center cursor-pointer active:bg-white/5"
