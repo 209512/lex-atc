@@ -5,6 +5,7 @@ import { TerminalLog } from '@/components/monitoring/terminal/TerminalLog';
 import { QueueDisplay } from '@/components/monitoring/queue/QueueDisplay';
 import { TacticalPanel } from '@/components/command/TacticalPanel';
 import { SlashingHeatmap } from '@/components/monitoring/heatmap/SlashingHeatmap';
+import { DisputeContextPanel } from '@/components/monitoring/heatmap/DisputeContextPanel';
 import { SmartAlerts } from '@/components/monitoring/alerts/SmartAlerts';
 import { useUIStore } from '@/store/ui';
 import { useATCStore } from '@/store/atc';
@@ -15,7 +16,6 @@ export const ControlTower = () => {
     const { state, agents } = useATCStore();
     const { viewMode } = uiPreferences;
 
-    // Responsive rebound effect
     React.useEffect(() => {
         const handleResize = () => {
             const w = window.innerWidth;
@@ -44,33 +44,64 @@ export const ControlTower = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, [uiPreferences, updateFloatingPanel]);
 
-    // Find the most recent slashing or dispute event in the last 15 seconds
-    const recentSlashingEvent = React.useMemo(() => {
+    const [dismissedEventIds, setDismissedEventIds] = React.useState<{ dispute?: string | null; slash?: string | null }>({});
+
+    const { recentDisputeEvent, recentSlashEvent } = React.useMemo(() => {
         const logsArray = state?.logs || [];
         const now = Date.now();
-        return logsArray.find(log => {
-            if (log.actionKey !== 'SETTLEMENT_DISPUTE' && log.actionKey !== 'SETTLEMENT_SLASH') return false;
-            const logTime = new Date(log.timestamp).getTime();
-            return (now - logTime) < 15000; // Show for 15 seconds
-        });
+
+        const findRecent = (actionKey: string, windowMs: number) => {
+            for (let i = logsArray.length - 1; i >= 0; i -= 1) {
+                const log = logsArray[i];
+                if (log.actionKey !== actionKey) continue;
+                const logTime = new Date(log.timestamp).getTime();
+                if ((now - logTime) < windowMs) return log;
+                return null;
+            }
+            return null;
+        };
+
+        return {
+            recentDisputeEvent: findRecent('SETTLEMENT_DISPUTE', 10000),
+            recentSlashEvent: findRecent('SETTLEMENT_SLASH', 15000),
+        };
     }, [state?.logs]);
 
     const heatmapProps = React.useMemo(() => {
-        if (!recentSlashingEvent) return null;
-        const agentId = recentSlashingEvent.agentId || recentSlashingEvent.meta?.agentId || 'UNKNOWN';
+        if (!recentSlashEvent) return null;
+        const agentId = recentSlashEvent.agentId || recentSlashEvent.meta?.agentId || 'UNKNOWN';
         const agent = agents.find(a => a.id === agentId || a.uuid === agentId);
         
         return {
             agentId,
             metrics: {
                 latency: agent?.metrics?.latency || 0,
-                conflictRate: recentSlashingEvent.meta?.metrics?.conflictRate ?? ((agent?.metrics?.collisions || 0) / 100),
-                balanceDrain: recentSlashingEvent.meta?.metrics?.balanceDrain ?? ((agent?.account?.balance || 0) < 5000 ? ((10000 - (agent?.account?.balance || 0)) / 10000) * 100 : 0),
-                anomalyScore: recentSlashingEvent.meta?.metrics?.anomalyScore ?? (agent?.metrics?.anomalyScore || 0.92),
-                arweaveTxId: recentSlashingEvent.meta?.arweaveTxId
+                conflictRate: recentSlashEvent.meta?.metrics?.conflictRate ?? Math.min(100, Number(agent?.metrics?.collisions || 0)),
+                balanceDrain: recentSlashEvent.meta?.metrics?.balanceDrain ?? ((agent?.account?.balance || 0) < 5000 ? ((10000 - (agent?.account?.balance || 0)) / 10000) * 100 : 0),
+                anomalyScore: recentSlashEvent.meta?.metrics?.anomalyScore ?? (agent?.metrics?.anomalyScore || 0.92),
+                arweaveTxId: recentSlashEvent.meta?.arweaveTxId
             }
         };
-    }, [recentSlashingEvent, agents]);
+    }, [recentSlashEvent, agents]);
+
+    const disputeProps = React.useMemo(() => {
+        if (!recentDisputeEvent) return null;
+        const msg = String(recentDisputeEvent.message || '');
+        const m = msg.match(/FOR\s+(.+)$/i);
+        const channelIdFromMessage = m?.[1]?.trim()?.toLowerCase();
+        const channels = (state as any)?.settlement?.channels || [];
+        const ch = channelIdFromMessage
+            ? channels.find((c: any) => String(c?.channelId || '').toLowerCase() === channelIdFromMessage)
+            : null;
+        const channelId = ch?.channelId || channelIdFromMessage || 'unknown';
+        return {
+            channelId,
+            actorUuid: ch?.actorUuid,
+            openedBy: ch?.openedBy,
+            targetNonce: ch?.targetNonce ?? ch?.lastNonce,
+            reason: ch?.reason,
+        };
+    }, [recentDisputeEvent, state]);
 
     const isL4Open = uiPreferences.panels.l4?.isOpen !== false;
     const isTerminalOpen = uiPreferences.panels.terminal?.isOpen !== false;
@@ -107,13 +138,28 @@ export const ControlTower = () => {
                     <QueueDisplay />
                     <TacticalPanel />
                     <SmartAlerts />
-                    {heatmapProps && (
-                        <div className="pointer-events-auto">
-                            <SlashingHeatmap 
-                                agentId={heatmapProps.agentId} 
-                                metrics={heatmapProps.metrics} 
-                                isVisible={true} 
-                            />
+                    {(heatmapProps || disputeProps) && (
+                        <div className="pointer-events-auto absolute top-24 right-6 z-50 flex flex-col gap-3">
+                            {disputeProps && recentDisputeEvent && dismissedEventIds.dispute !== recentDisputeEvent.id && (
+                                <DisputeContextPanel
+                                    channelId={disputeProps.channelId}
+                                    actorUuid={disputeProps.actorUuid}
+                                    openedBy={disputeProps.openedBy}
+                                    targetNonce={disputeProps.targetNonce}
+                                    reason={disputeProps.reason}
+                                    isDark={isDark}
+                                    isVisible={true}
+                                    onClose={() => setDismissedEventIds((prev) => ({ ...prev, dispute: recentDisputeEvent.id }))}
+                                />
+                            )}
+                            {heatmapProps && recentSlashEvent && dismissedEventIds.slash !== recentSlashEvent.id && (
+                                <SlashingHeatmap
+                                    agentId={heatmapProps.agentId}
+                                    metrics={heatmapProps.metrics}
+                                    isVisible={true}
+                                    onClose={() => setDismissedEventIds((prev) => ({ ...prev, slash: recentSlashEvent.id }))}
+                                />
+                            )}
                         </div>
                     )}
                 </>

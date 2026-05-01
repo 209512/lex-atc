@@ -1,6 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
-import { AlertTriangle, HardDrive } from 'lucide-react';
+import { AlertTriangle, HardDrive, X } from 'lucide-react';
 
 interface MetricVector {
   latency: number;
@@ -14,9 +14,10 @@ interface SlashingHeatmapProps {
   agentId: string;
   metrics: MetricVector;
   isVisible: boolean;
+  onClose?: () => void;
 }
 
-export const SlashingHeatmap: React.FC<SlashingHeatmapProps> = ({ agentId, metrics, isVisible }) => {
+export const SlashingHeatmap: React.FC<SlashingHeatmapProps> = ({ agentId, metrics, isVisible, onClose }) => {
   if (!isVisible) return null;
 
   const getColor = (value: number, threshold: number) => {
@@ -26,10 +27,20 @@ export const SlashingHeatmap: React.FC<SlashingHeatmapProps> = ({ agentId, metri
   };
 
   return (
-    <div className="absolute top-24 right-6 w-80 bg-slate-900/95 border border-red-500/30 rounded-lg p-4 shadow-2xl backdrop-blur-md z-50">
+    <div className="w-80 bg-slate-900/95 border border-red-500/30 rounded-lg p-4 shadow-2xl backdrop-blur-md">
       <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-700">
         <AlertTriangle className="text-red-400 w-5 h-5" />
-        <h3 className="font-mono text-sm font-bold text-slate-200">SLASHING JUSTIFICATION</h3>
+        <h3 className="font-mono text-sm font-bold text-slate-200 flex-1">SLASHING JUSTIFICATION</h3>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="text-slate-400 hover:text-slate-200"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
       
       <div className="space-y-3 font-mono text-xs">
@@ -41,8 +52,8 @@ export const SlashingHeatmap: React.FC<SlashingHeatmapProps> = ({ agentId, metri
         <div className="grid grid-cols-2 gap-2 mt-2">
           <div className="flex flex-col gap-1">
             <span className="text-slate-500 text-[10px]">Conflict Rate</span>
-            <div className={clsx("px-2 py-1 rounded text-center", getColor(metrics.conflictRate, 0.8))}>
-              {(metrics.conflictRate * 100).toFixed(1)}%
+            <div className={clsx("px-2 py-1 rounded text-center", getColor(metrics.conflictRate, 80))}>
+              {metrics.conflictRate.toFixed(1)}%
             </div>
           </div>
           <div className="flex flex-col gap-1">
