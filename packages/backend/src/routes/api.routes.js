@@ -303,12 +303,16 @@ module.exports = function setupApiRoutes(app, svc, middlewares) {
     }));
 
     // 4. Web3 Settlement & Dispute
-    app.post('/api/settlement/disputes', adminRate, authExecutor, validateBody({ channelId: { required: true, type: 'string' }, openedBy: { required: false, type: 'string' }, targetNonce: { required: false, type: 'number' }, reason: { required: false, type: 'string' } }), asyncRoute(async (req, res) => {
-        const { channelId, openedBy, targetNonce, reason } = req.body || {};
+    app.post('/api/settlement/disputes', adminRate, authExecutor, validateBody({ channelId: { required: false, type: 'string' }, actorUuid: { required: false, type: 'string' }, openedBy: { required: false, type: 'string' }, targetNonce: { required: false, type: 'number' }, reason: { required: false, type: 'string' } }), asyncRoute(async (req, res) => {
+        const { channelId, actorUuid, openedBy, targetNonce, reason } = req.body || {};
+        if (!channelId && !actorUuid) {
+            return res.status(400).json({ error: 'Must provide either channelId or actorUuid' });
+        }
+        const effectiveChannelId = channelId || `channel:${actorUuid}`;
         const result = await svc.governanceEngine.propose({
             adminId: req.admin.id,
             action: 'SETTLEMENT_DISPUTE',
-            params: { channelId, openedBy: openedBy || req.admin.id, targetNonce: Number(targetNonce) || 0, reason: reason || 'DISPUTE' },
+            params: { channelId: effectiveChannelId, openedBy: openedBy || req.admin.id, targetNonce: Number(targetNonce) || 0, reason: reason || 'DISPUTE' },
             reason: 'API_SETTLEMENT_DISPUTE'
         });
         res.json(formatGovernanceProposalResponse(result));

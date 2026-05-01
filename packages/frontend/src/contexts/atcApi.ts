@@ -63,8 +63,8 @@ export const atcApi = {
   executeProposal: (proposalId: string) => request(`/governance/proposals/${encodeURIComponent(proposalId)}/execute`, { method: 'POST' }),
   cancelProposal: (proposalId: string, reason?: string) =>
     request(`/governance/proposals/${encodeURIComponent(proposalId)}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) }),
-  openDispute: (channelId: string, openedBy?: string, targetNonce?: number, reason?: string) =>
-    request('/settlement/disputes', { method: 'POST', body: JSON.stringify({ channelId, openedBy, targetNonce, reason }) }),
+  openDispute: (payload: { channelId?: string; actorUuid?: string; openedBy?: string; targetNonce?: number; reason?: string }) =>
+    request('/settlement/disputes', { method: 'POST', body: JSON.stringify(payload) }),
   slashSettlement: (channelId: string, actorUuid?: string, reason?: string) =>
     request('/settlement/slash', { method: 'POST', body: JSON.stringify({ channelId, actorUuid, reason }) }),
   togglePause: (uuid: string, pause: boolean) => request(`/agents/${encodeURIComponent(uuid)}/pause`, { method: 'POST', body: JSON.stringify({ pause }) }),
