@@ -23,7 +23,7 @@ export interface LexAgent {
   account: SovereignAccount;
   model: string;
   provider?: string;
-  position: [number, number, number];
+  position?: [number, number, number];
   orbit?: {
     seed: number;
     spawnTime: number;

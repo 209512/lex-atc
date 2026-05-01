@@ -137,7 +137,7 @@ class SSEService {
         }
         this.isPublishing = true;
         try {
-            const agents = await this.svc.getAgentStatus();
+            const agents = await this.svc.getAgentStatus({ includePosition: false });
             if (agents.length === 0 && this.svc.activeAgentCount > 0) {
                 this.isPublishing = false;
                 return;
@@ -210,7 +210,7 @@ class SSEService {
                 this.sseClients.add(res);
 
                 const lastEventId = String(req.headers['last-event-id'] || '');
-                const agents = await this.svc.getAgentStatus();
+                const agents = await this.svc.getAgentStatus({ includePosition: false });
                 const logs = this._logsSince(lastEventId);
                 const state = {
                     ...this.svc.state,

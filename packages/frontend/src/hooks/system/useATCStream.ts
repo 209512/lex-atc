@@ -4,11 +4,22 @@ import { Agent } from '@/contexts/atcTypes';
 import { useATCStore } from '@/store/atc';
 import { formatId } from '@/utils/agentIdentity';
 import { frontendConfig } from '@/config/runtime';
+import { getOrbitPosition } from '@/utils/orbit';
 
 const getSpiralPos = (i: number): [number, number, number] => {
   const r = 2.5 * Math.sqrt(i + 1);
   const theta = i * 137.508 * (Math.PI / 180);
   return [Math.cos(theta) * r, 0, Math.sin(theta) * r];
+};
+
+const getOrbitPos = (agent: any, fallbackIndex: number, now: number): [number, number, number] => {
+  const orbit = agent?.orbit;
+  const seed = typeof orbit?.seed === 'number' ? orbit.seed : null;
+  const spawnTime = typeof orbit?.spawnTime === 'number' ? orbit.spawnTime : null;
+  const totalPausedMs = typeof orbit?.totalPausedMs === 'number' ? orbit.totalPausedMs : 0;
+  if (seed === null || spawnTime === null) return getSpiralPos(fallbackIndex);
+  const activeTime = Math.max(0, now - spawnTime - totalPausedMs);
+  return getOrbitPosition(seed, activeTime);
 };
 
 export const useATCStream = () => {
@@ -56,7 +67,7 @@ export const useATCStream = () => {
           const prevAgent = prevMap.get(originalId);
           const validPosition = (Array.isArray(rawPos) && rawPos.length === 3) 
             ? (rawPos as [number, number, number]) 
-            : (prevAgent?.position || getSpiralPos(i)); 
+            : (prevAgent?.position || getOrbitPos(finalAgent, i, now)); 
 
           return {
             ...finalAgent,

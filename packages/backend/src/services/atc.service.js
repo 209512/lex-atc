@@ -336,7 +336,7 @@ class ATCService extends EventEmitter {
         return 'RG-0';
     }
 
-    async getAgentStatus() {
+    async getAgentStatus({ includePosition = false } = {}) {
         if (!this.sharedClient) return [];
         try {
             const map = await this.sharedClient.getMap(CONSTANTS.MAP_AGENT_STATUS);
@@ -362,13 +362,16 @@ class ATCService extends EventEmitter {
 
             for (const [uuid, info] of entrySet) {
                 if (this.agents.has(uuid) || (now - info.lastUpdated < 5000)) {
-                    info.id = info.uuid; 
-
                     const agentObj = this.agents.get(uuid);
-                    info.displayName = agentObj ? agentObj.id : (info.displayName || info.id);
-                    
-                    info.priority = (this.state.priorityAgents || []).includes(uuid);
-                    info.isPaused = await this.isAgentPaused(uuid);
+                    const base = { ...info };
+                    const enriched = {
+                        ...base,
+                        id: base.uuid,
+                        displayName: agentObj ? agentObj.id : (base.displayName || base.id),
+                        priority: (this.state.priorityAgents || []).includes(uuid),
+                        isPaused: await this.isAgentPaused(uuid),
+                    };
+
                     const iso = pendingByAgent.get(uuid) || [];
                     const hasPending = iso.some(t => String(t.status) === 'PENDING');
                     const settlement = settlementByAgent.get(uuid);
@@ -378,10 +381,16 @@ class ATCService extends EventEmitter {
                     if (hasPending) l4Phase = 'SANDBOX';
                     else if (lastStatus === 'FINALIZED') l4Phase = 'FINALIZED';
                     else if (hasSnap) l4Phase = 'COMMIT';
-                    info.l4Phase = l4Phase;
-                    info.onchainStatus = lastStatus || null;
-                    info.onchainTxid = settlement?.lastTxid || null;
-                    statusList.push(info);
+                    enriched.l4Phase = l4Phase;
+                    enriched.onchainStatus = lastStatus || null;
+                    enriched.onchainTxid = settlement?.lastTxid || null;
+
+                    if (includePosition) {
+                        statusList.push(enriched);
+                    } else {
+                        const { position: _position, ...rest } = enriched;
+                        statusList.push(rest);
+                    }
                 }
             }
             return statusList.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || '', undefined, {numeric: true}));
