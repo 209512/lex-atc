@@ -61,7 +61,9 @@ export const AgentDrone = ({
         }
         return (h >>> 0) / 4294967295;
     }, [id]);
-    const threatColor = useMemo(() => new THREE.Color(), []);
+    const baseTone = useMemo(() => new THREE.Color(), []);
+    const emissiveTone = useMemo(() => new THREE.Color(), []);
+    const dangerTone = useMemo(() => new THREE.Color(LOG_LEVELS.critical.color), []);
 
     const displayId = agentData?.displayId || id;
 
@@ -173,16 +175,22 @@ export const AgentDrone = ({
         if (materialRef.current) {
             const special = isOverride || isForced || isLocked || isPriority || isSelected || effectivelyPaused;
             const safeThreat = Math.max(0, Math.min(1, threat));
-            const emissiveIntensity = effectivelyPaused ? 0.3 : (0.6 + safeThreat * 2.1);
-            materialRef.current.emissiveIntensity = special ? ((isPaused || isGlobalStopped) ? 0.3 : 1.5) : emissiveIntensity;
             if (!special) {
-                const hue = 0.33 * (1 - safeThreat);
-                threatColor.setHSL(hue, 1, 0.5);
-                materialRef.current.color.copy(threatColor);
-                materialRef.current.emissive.copy(threatColor);
+                baseTone.set(color || '#3b82f6');
+                const hsl = { h: 0, s: 0, l: 0 };
+                baseTone.getHSL(hsl);
+                const s = Math.max(0.72, Math.min(1, hsl.s));
+                const l = isDark ? Math.max(0.46, Math.min(0.62, hsl.l)) : Math.max(0.22, Math.min(0.45, hsl.l));
+                baseTone.setHSL(hsl.h, s, l);
+
+                emissiveTone.copy(baseTone).lerp(dangerTone, safeThreat);
+                materialRef.current.color.copy(baseTone);
+                materialRef.current.emissive.copy(emissiveTone);
+                materialRef.current.emissiveIntensity = (isDark ? 0.85 : 0.55) + safeThreat * (isDark ? 1.8 : 1.4);
             } else {
                 materialRef.current.color.set(coreColor);
                 materialRef.current.emissive.set(coreColor);
+                materialRef.current.emissiveIntensity = (isPaused || isGlobalStopped) ? 0.3 : 1.5;
             }
         }
     });

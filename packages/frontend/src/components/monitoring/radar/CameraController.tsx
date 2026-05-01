@@ -75,15 +75,22 @@ export const CameraController = ({ targetPosition, targetAgent }: Props) => {
         // 사용자가 우클릭으로 화면을 옮기거나 회전 중일 때는 카메라 타겟을 강제로 고정하지 않음
         if (isUserInteracting.current) return;
 
+        const agentPaused = String((targetAgent as any)?.status || '').toLowerCase() === 'paused' || (targetAgent as any)?.isPaused === true;
+        const effectivePaused = globalStop || agentPaused;
+        if (selectedAgentId && effectivePaused) {
+            isAutoZooming.current = false;
+            orbit.update();
+            return;
+        }
+
         const orbitSeed = typeof (targetAgent as any)?.orbit?.seed === 'number' ? (targetAgent as any).orbit.seed : null;
         const orbitSpawnTime = typeof (targetAgent as any)?.orbit?.spawnTime === 'number' ? (targetAgent as any).orbit.spawnTime : null;
         const orbitTotalPausedMs = typeof (targetAgent as any)?.orbit?.totalPausedMs === 'number' ? (targetAgent as any).orbit.totalPausedMs : 0;
         const hasOrbitTarget = orbitSeed !== null && orbitSpawnTime !== null;
-        const isPaused = globalStop || String((targetAgent as any)?.status || '').toLowerCase() === 'paused' || (targetAgent as any)?.isPaused === true;
 
         if (selectedAgentId) {
             let hasTarget = false;
-            if (!isPaused && hasOrbitTarget) {
+            if (hasOrbitTarget) {
                 const activeTime = Math.max(0, Date.now() - orbitSpawnTime - orbitTotalPausedMs);
                 const p = getOrbitPosition(orbitSeed, activeTime);
                 targetVec.set(p[0], p[1], p[2]);
