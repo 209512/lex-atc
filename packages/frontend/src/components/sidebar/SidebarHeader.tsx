@@ -31,7 +31,7 @@ export const SidebarHeader = ({ onOpenSettings }: { onOpenSettings: () => void }
                 </div>
                 <div className="min-w-0 flex-1">
                     <Tooltip content="Main Control Panel" position="bottom">
-                        <h2 className="font-bold text-sm tracking-wide min-w-0 flex items-center gap-2 flex-wrap" data-testid="traffic-control-title">
+                        <h2 className="font-bold text-sm tracking-wide min-w-0 flex items-center gap-2" data-testid="traffic-control-title">
                             <span className="truncate block min-w-0">TRAFFIC CONTROL</span>
                             <span
                                 className={clsx(

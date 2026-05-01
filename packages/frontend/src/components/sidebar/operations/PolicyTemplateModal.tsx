@@ -42,7 +42,7 @@ export const PolicyTemplateModal = ({ isOpen, onClose }: { isOpen: boolean, onCl
           >
             <Shield className="text-blue-400 w-8 h-8 mb-3 group-hover:scale-110 transition-transform" />
             <h3 className="font-bold text-blue-100 mb-1">STRICT DEFI</h3>
-            <p className="text-xs text-slate-400 mb-4 h-12">Maximum security for financial agents. All irreversible intents sandboxed.</p>
+            <p className="text-xs text-slate-400 mb-4 min-h-[48px] leading-relaxed">Maximum security for financial agents. All irreversible intents sandboxed.</p>
             <ul className="text-[10px] font-mono text-blue-300/70 space-y-1">
               <li>• Max Lease: 2s</li>
               <li>• Sandbox: Forced</li>

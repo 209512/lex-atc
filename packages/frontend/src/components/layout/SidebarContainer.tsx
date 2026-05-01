@@ -2,6 +2,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import React, { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
+import { Link } from 'react-router-dom';
 import { useUIStore } from '@/store/ui';
 import { useSidebarResize } from '@/hooks/system/useSidebarResize';
 
@@ -119,15 +120,18 @@ export const SidebarContainer = () => {
                     key={key}
                     {...props}
                     titleAddon={(
-                        <a
-                            href="/status-system"
+                        <Link
+                            to="/status-system"
                             onClick={(e) => { e.stopPropagation(); }}
                             aria-label="Status guide 열기"
                             data-testid="l4-status-guide"
-                            className={clsx('shrink-0 text-[9px] font-mono uppercase tracking-[0.12em] opacity-80', isDark ? 'text-blue-200 hover:opacity-100' : 'text-blue-700 hover:opacity-100')}
+                            className={clsx(
+                                'shrink-0 rounded border px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.12em] transition',
+                                isDark ? 'border-blue-500/30 bg-blue-500/10 text-blue-200 hover:bg-blue-500/15' : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                            )}
                         >
                             guide
-                        </a>
+                        </Link>
                     )}
                 >
                     <L4StatusPanel />
