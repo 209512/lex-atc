@@ -1,26 +1,30 @@
 import { http, HttpResponse } from 'msw';
 import { SYSTEM, LOG_DOMAINS, LOG_STAGES, LOG_ACTIONS } from '@lex-atc/shared';
-import { db, broadcast, getAgent, updateAgent, addLog, scaleAgents } from '../core/db';
+import { db, broadcast, getAgent, updateAgent, addLog, scaleAgents, setAdminPause } from '../core/db';
 
 export const agentHandlers = [
   http.get('/api/agents/status', () => {
-    const statusList = db.agents.map(a => ({
-      ...a,
-      id: a.uuid,
-      displayName: a.displayName || a.id,
-      priority: db.atcState.priorityAgents.includes(a.uuid),
-      isPaused: a.isPaused ?? false,
-      orbit: db.agentMetas[a.uuid]
-        ? {
-            seed: db.agentMetas[a.uuid].seed,
-            spawnTime: db.agentMetas[a.uuid].spawnTime,
-            totalPausedMs: db.agentMetas[a.uuid].totalPausedMs,
-          }
-        : undefined,
-      l4Phase: 'SANDBOX',
-      onchainStatus: null,
-      onchainTxid: null,
-    }));
+    const now = Date.now();
+    const statusList = db.agents.map(a => {
+      const meta = db.agentMetas[a.uuid];
+      return {
+        ...a,
+        id: a.uuid,
+        displayName: a.displayName || a.id,
+        priority: db.atcState.priorityAgents.includes(a.uuid),
+        isPaused: a.isPaused ?? false,
+        orbit: meta
+          ? {
+              seed: meta.seed,
+              spawnTime: meta.spawnTime,
+              totalPausedMs: meta.totalPausedMs + (meta.pausedAt ? (now - meta.pausedAt) : 0),
+            }
+          : undefined,
+        l4Phase: 'SANDBOX',
+        onchainStatus: null,
+        onchainTxid: null,
+      };
+    });
     return HttpResponse.json(statusList);
   }),
 
@@ -88,14 +92,7 @@ export const agentHandlers = [
   http.post('/api/agents/:uuid/pause', async ({ params, request }) => {
     const uuid = String(params.uuid);
     const body = (await request.json()) as { pause: boolean };
-    const meta = db.agentMetas[uuid];
-    if (meta) {
-      if (body.pause && !meta.pausedAt) meta.pausedAt = Date.now();
-      else if (!body.pause && meta.pausedAt) {
-        meta.totalPausedMs += Date.now() - meta.pausedAt;
-        meta.pausedAt = null;
-      }
-    }
+    setAdminPause(uuid, Boolean(body.pause));
     const ok = updateAgent(uuid, {
       isPaused: body.pause,
       status: body.pause ? 'PAUSED' : 'IDLE',

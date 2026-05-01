@@ -20,6 +20,7 @@ export interface AgentMeta {
   seed: number;
   spawnTime: number;
   pausedAt: number | null;
+  pauseReasons: { admin: boolean; globalStop: boolean };
   totalPausedMs: number;
   holdingTicks: number;
   orbitalLevel?: OrbitalLevel;
@@ -118,6 +119,7 @@ const makeDefaultDB = (): MockDB => {
       seed,
       spawnTime: now,
       pausedAt: null,
+      pauseReasons: { admin: false, globalStop: false },
       totalPausedMs: 0,
       holdingTicks: 0,
       orbitalLevel: a.orbitalLevel,
@@ -200,27 +202,56 @@ export const db: MockDB = (() => {
         seed: i,
         spawnTime: now,
         pausedAt: null,
+        pauseReasons: { admin: false, globalStop: false },
         totalPausedMs: 0,
         holdingTicks: 0,
         orbitalLevel: a.orbitalLevel,
         riskVector: a.riskVector,
       };
+    } else {
+      const meta = result.agentMetas[a.uuid] as any;
+      if (!meta.pauseReasons) meta.pauseReasons = { admin: false, globalStop: false };
     }
   });
 
   return result;
 })();
 
+const setPauseReason = (uuid: string, reason: 'admin' | 'globalStop', enabled: boolean) => {
+  const meta = db.agentMetas[uuid];
+  if (!meta) return;
+  const wasPaused = meta.pauseReasons.admin || meta.pauseReasons.globalStop;
+  meta.pauseReasons[reason] = enabled;
+  const isPausedNow = meta.pauseReasons.admin || meta.pauseReasons.globalStop;
+  const now = Date.now();
+  if (!wasPaused && isPausedNow && !meta.pausedAt) meta.pausedAt = now;
+  if (wasPaused && !isPausedNow && meta.pausedAt) {
+    meta.totalPausedMs += now - meta.pausedAt;
+    meta.pausedAt = null;
+  }
+};
+
+export const setGlobalStop = (enable: boolean) => {
+  db.atcState.globalStop = Boolean(enable);
+  for (const a of db.agents) setPauseReason(a.uuid, 'globalStop', Boolean(enable));
+};
+
+export const setAdminPause = (uuid: string, pause: boolean) => {
+  setPauseReason(uuid, 'admin', Boolean(pause));
+};
+
 export const broadcast = () => {
+  const now = Date.now();
   const agents: AgentWithOrbit[] = db.agents.map((a) => {
     const meta = db.agentMetas[a.uuid];
     if (!meta) return a;
+    const effectivePausedMs = meta.totalPausedMs + (meta.pausedAt ? (now - meta.pausedAt) : 0);
     return {
       ...a,
       orbit: {
         seed: meta.seed,
         spawnTime: meta.spawnTime,
-        totalPausedMs: meta.totalPausedMs,
+        totalPausedMs: effectivePausedMs,
       },
     };
   });
@@ -306,6 +337,7 @@ export const scaleAgents = (count: number) => {
         seed,
         spawnTime: now,
         pausedAt: null,
+        pauseReasons: { admin: false, globalStop: false },
         totalPausedMs: 0,
         holdingTicks: 0,
         orbitalLevel: agent.orbitalLevel,
@@ -332,14 +364,7 @@ export const applyProposalAction = (action: string, params: any) => {
     case 'PAUSE_AGENT': {
       const a = getAgent(params?.uuid);
       if (a) {
-        const meta = db.agentMetas[a.uuid];
-        if (meta) {
-          if (params.pause && !meta.pausedAt) meta.pausedAt = Date.now();
-          else if (!params.pause && meta.pausedAt) {
-            meta.totalPausedMs += Date.now() - meta.pausedAt;
-            meta.pausedAt = null;
-          }
-        }
+        setAdminPause(a.uuid, Boolean(params.pause));
         updateAgent(a.uuid, {
           isPaused: params.pause,
           status: params.pause ? 'PAUSED' : 'IDLE',
@@ -361,7 +386,7 @@ export const applyProposalAction = (action: string, params: any) => {
       break;
     }
     case 'TOGGLE_STOP':
-      db.atcState.globalStop = Boolean(params?.enable);
+      setGlobalStop(Boolean(params?.enable));
       break;
     case 'OVERRIDE':
       db.atcState.overrideSignal = true;

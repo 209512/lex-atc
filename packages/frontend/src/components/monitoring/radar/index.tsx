@@ -24,10 +24,8 @@ export const Radar: React.FC<{ compact?: boolean; isMainView?: boolean }> = ({ c
     const { isDark, selectedAgentId, setSelectedAgentId } = uiValues;
 
     const selectedAgent = useMemo(() => 
-        agents.find((a: Agent) => a.id === selectedAgentId), 
+        agents.find((a: Agent) => a.uuid === selectedAgentId || a.id === selectedAgentId), 
     [agents, selectedAgentId]);
-
-    const isGloballyStopped = !!state?.globalStop;
 
     const handleCreated = useCallback(({ gl }: any) => {
         gl.domElement.addEventListener('webglcontextlost', (event: any) => {
@@ -38,11 +36,8 @@ export const Radar: React.FC<{ compact?: boolean; isMainView?: boolean }> = ({ c
 
     const targetPos = useMemo(() => {
         if (!selectedAgent) return null;
-        if (selectedAgent.status === 'paused' || selectedAgent.isPaused || isGloballyStopped) {
-            return null; 
-        }
         return selectedAgent.position as [number, number, number];
-    }, [selectedAgent, isGloballyStopped]);
+    }, [selectedAgent]);
 
     return (
         <div 
@@ -50,7 +45,7 @@ export const Radar: React.FC<{ compact?: boolean; isMainView?: boolean }> = ({ c
             style={{ backgroundColor: isDark ? "#050505" : "#f8fafc" }}
         >
             {!compact && (
-                <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 pointer-events-none">
+                <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
                     <div className={clsx(
                         "flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-md text-[9px] font-mono font-bold transition-all duration-300", 
                         isDark ? "bg-black/40 border-white/10 text-white/60" : "bg-white/60 border-black/5 text-black/60"
@@ -83,25 +78,28 @@ export const Radar: React.FC<{ compact?: boolean; isMainView?: boolean }> = ({ c
                 }} 
                 frameloop={uiValues.uiPreferences?.limitFps ? 'demand' : 'always'}
                 dpr={1}
-                onPointerMissed={(e) => { if (e.button === 0) setSelectedAgentId(null); }}
+                onPointerMissed={(e) => {
+                    const btn = (e as any).button ?? (e as any).nativeEvent?.button;
+                    if (btn === 0 || btn == null) setSelectedAgentId(null);
+                }}
             >
                 <>
                     <PerspectiveCamera makeDefault position={[12, 12, 12]} fov={isMainView ? 45 : 60} />
                     <OrbitControls 
                         makeDefault 
                         enableZoom={true} 
-                        enablePan={true} 
+                        enablePan={!selectedAgentId} 
                         maxDistance={60} 
                         minDistance={3} 
                         enableDamping={true} 
                         dampingFactor={0.08}
-                        autoRotate={!uiValues.uiPreferences?.reduceMotion}
+                        autoRotate={!uiValues.uiPreferences?.reduceMotion && !selectedAgentId}
                         autoRotateSpeed={0.5}
                         rotateSpeed={typeof window !== 'undefined' && window.innerWidth < 768 ? 0.8 : 0.5}
                         zoomSpeed={typeof window !== 'undefined' && window.innerWidth < 768 ? 1.2 : 0.8}
                     />
                     
-                    <CameraController targetPosition={targetPos} />
+                    <CameraController targetPosition={targetPos} targetAgent={selectedAgent} />
 
                     <ambientLight intensity={isDark ? 0.4 : 0.8} />
                     <pointLight position={[10, 15, 10]} intensity={1.5} />
@@ -118,15 +116,16 @@ export const Radar: React.FC<{ compact?: boolean; isMainView?: boolean }> = ({ c
                         
                         {agents.map((agent: Agent) => (
                             <AgentDrone
-                                key={agent.id}
-                                id={agent.id}
-                                position={agent.position as [number, number, number]}
-                                isLocked={state?.holder === agent.id}
+                                key={agent.uuid || agent.id}
+                                id={agent.uuid || agent.id}
+                                position={(agent.position || [0, 0, 0]) as [number, number, number]}
+                                isLocked={state?.holder === agent.uuid || state?.holder === agent.id}
                                 isOverride={!!state?.overrideSignal}
                                 color={agent.color || '#3b82f6'}
                                 onClick={(id) => setSelectedAgentId(id)}
                                 isPaused={agent.status === 'paused' || agent.isPaused === true || !!state?.globalStop}
                                 isPriority={!!agent.priority}
+                                isCompact={compact}
                             />
                         ))}
                     </Suspense>

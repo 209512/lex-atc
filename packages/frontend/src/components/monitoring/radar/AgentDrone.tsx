@@ -26,11 +26,12 @@ interface AgentDroneProps {
     isPaused: boolean; 
     isPriority: boolean;
     reducedEffects?: boolean;
+    isCompact?: boolean;
 }
 
 export const AgentDrone = ({ 
     id, position = [0, 0, 0], isLocked, isOverride, color, 
-    onClick, isPaused, isPriority, reducedEffects = false
+    onClick, isPaused, isPriority, reducedEffects = false, isCompact = false
 }: AgentDroneProps) => {
     const groupRef = useRef<THREE.Group>(null);
     const bodyRef = useRef<THREE.Mesh>(null);
@@ -40,16 +41,16 @@ export const AgentDrone = ({
     const { playSuccess } = useAudio(isAdminMuted);
 
     const isGlobalStopped = !!state?.globalStop;
-    const isSelected = selectedAgentId === id;
-    const isForced = state?.forcedCandidate === id;
+    const agentData = useMemo(() => agents.find(a => a.id === id || a.uuid === id), [agents, id]);
+    const agentUuid = agentData?.uuid || id;
+    const isSelected = selectedAgentId === id || selectedAgentId === agentUuid;
+    const isForced = state?.forcedCandidate === agentUuid;
 
     const currentPos = useRef(new THREE.Vector3(...position));
     const targetVec = useRef(new THREE.Vector3(...position));
     const prevLocked = useRef(isLocked);
     
     const isResuming = useRef(false);
-    const stopStartedAt = useRef<number | null>(null);
-    const totalStoppedMs = useRef(0);
     const [isHovered, setIsHovered] = useState(false);
     const hoverHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const noiseSeed = useMemo(() => {
@@ -62,7 +63,6 @@ export const AgentDrone = ({
     }, [id]);
     const threatColor = useMemo(() => new THREE.Color(), []);
 
-    const agentData = useMemo(() => agents.find(a => a.id === id), [agents, id]);
     const displayId = agentData?.displayId || id;
 
     const coreColor = useMemo(() => {
@@ -95,25 +95,13 @@ export const AgentDrone = ({
         }
     }, [isPaused, isGlobalStopped]);
 
-    useEffect(() => {
-        if (isGlobalStopped) {
-            if (!stopStartedAt.current) stopStartedAt.current = Date.now();
-            return;
-        }
-        if (stopStartedAt.current) {
-            totalStoppedMs.current += Date.now() - stopStartedAt.current;
-            stopStartedAt.current = null;
-        }
-    }, [isGlobalStopped]);
-
     const orbitSeed = typeof (agentData as any)?.orbit?.seed === 'number' ? (agentData as any).orbit.seed : null;
     const orbitSpawnTime = typeof (agentData as any)?.orbit?.spawnTime === 'number' ? (agentData as any).orbit.spawnTime : null;
     const orbitTotalPausedMs = typeof (agentData as any)?.orbit?.totalPausedMs === 'number' ? (agentData as any).orbit.totalPausedMs : 0;
 
     useEffect(() => {
         if (orbitSeed === null || orbitSpawnTime === null) return;
-        const stoppedMs = totalStoppedMs.current + (stopStartedAt.current ? (Date.now() - stopStartedAt.current) : 0);
-        const activeTime = Math.max(0, Date.now() - orbitSpawnTime - orbitTotalPausedMs - stoppedMs);
+        const activeTime = Math.max(0, Date.now() - orbitSpawnTime - orbitTotalPausedMs);
         const p = getOrbitPosition(orbitSeed, activeTime);
         currentPos.current.set(p[0], p[1], p[2]);
         targetVec.current.set(p[0], p[1], p[2]);
@@ -137,8 +125,7 @@ export const AgentDrone = ({
             groupRef.current.position.copy(currentPos.current);
         } else {
             if (orbitSeed !== null && orbitSpawnTime !== null) {
-                const stoppedMs = totalStoppedMs.current + (stopStartedAt.current ? (Date.now() - stopStartedAt.current) : 0);
-                const activeTime = Math.max(0, Date.now() - orbitSpawnTime - orbitTotalPausedMs - stoppedMs);
+                const activeTime = Math.max(0, Date.now() - orbitSpawnTime - orbitTotalPausedMs);
                 const p = getOrbitPosition(orbitSeed, activeTime);
                 targetVec.current.set(p[0], p[1], p[2]);
             } else {
@@ -202,20 +189,20 @@ export const AgentDrone = ({
     const recentLogs = useMemo(() => {
         const isSlashed = (agentData as any)?.slash === true;
         const baseLogs = (state?.logs || [])
-            .filter(l => l.agentId === id && Date.now() - Number(l.timestamp) < 3000)
+            .filter(l => l.agentId === agentUuid && Date.now() - Number(l.timestamp) < 3000)
             .slice(-3); // Show max 3 recent logs
             
         if (isSlashed) {
             baseLogs.push({
                 id: `slash-${Date.now()}`,
-                agentId: id,
+                agentId: agentUuid,
                 message: '💥 SLASHED',
                 timestamp: Date.now(),
                 type: 'critical' as any
             });
         }
         return baseLogs;
-    }, [state?.logs, id, agentData]);
+    }, [state?.logs, agentUuid, agentData]);
 
     return (
         <>
@@ -273,22 +260,11 @@ export const AgentDrone = ({
                 />
 
                 {isHovered && agentData && (
-                    <Html position={[0, 1.6, 0]} center distanceFactor={15} zIndexRange={[0, 10]} style={{ pointerEvents: 'auto' }}>
+                    <Html position={[0, 1.6, 0]} center distanceFactor={15} zIndexRange={[0, 10]} style={{ pointerEvents: 'none' }}>
                         <div className={clsx(
-                            "px-2 py-1 rounded border text-[9px] font-mono backdrop-blur-sm",
+                            "w-[280px] max-w-[80vw] px-2.5 py-1.5 rounded border text-[8px] leading-snug font-mono backdrop-blur-sm overflow-hidden",
                             isDark ? "bg-black/70 border-white/20 text-white" : "bg-white/90 border-slate-300 text-slate-700"
                         )}
-                        onMouseEnter={() => {
-                            if (hoverHideTimer.current) {
-                                clearTimeout(hoverHideTimer.current);
-                                hoverHideTimer.current = null;
-                            }
-                        }}
-                        onMouseLeave={() => {
-                            if (hoverHideTimer.current) clearTimeout(hoverHideTimer.current);
-                            hoverHideTimer.current = setTimeout(() => setIsHovered(false), 150);
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()}
                         >
                             {(() => {
                                 const rv = normalizeRiskVector8((agentData as any).riskVector);
@@ -296,15 +272,18 @@ export const AgentDrone = ({
                                 const axes = getAxesForDisplayMode(mode);
                                 const [row1, row2] = splitRiskVectorRows(axes);
                                 const Row = ({ keys }: { keys: readonly RiskAxisKey[] }) => (
-                                    <div className="grid grid-cols-4 gap-x-2 gap-y-0.5">
+                                    <div className={clsx(
+                                        "grid gap-x-2 gap-y-1",
+                                        keys.length <= 2 ? "grid-cols-2" : "grid-cols-4"
+                                    )}>
                                         {keys.map((k) => {
                                             const v = rv[RISK_AXIS_INDEX[k] as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7];
                                             return (
-                                                <div key={k} className="flex items-center gap-1">
+                                                <div key={k} className="grid grid-cols-[16px_minmax(0,1fr)] items-center gap-x-1 min-w-0">
                                                     <Tooltip content={`${RISK_AXIS_META[k as keyof typeof RISK_AXIS_META].name} — ${RISK_AXIS_META[k as keyof typeof RISK_AXIS_META].description}`} position="top">
-                                                        <span className="opacity-70">{k}</span>
+                                                        <span className="opacity-70">{k}:</span>
                                                     </Tooltip>
-                                                    <span className="opacity-90">{v.toFixed(2)}</span>
+                                                    <span className="opacity-90 tabular-nums text-right truncate">{v.toFixed(2)}</span>
                                                 </div>
                                             );
                                         })}
@@ -324,14 +303,28 @@ export const AgentDrone = ({
                 {/* Floating Effect for Money / Logs */}
                 {recentLogs.map((log, idx) => (
                     <Html key={log.id} position={[0, 1.5 + idx * 0.4, 0]} center distanceFactor={15} zIndexRange={[0, 10]} style={{ pointerEvents: 'none' }}>
+                        {(() => {
+                            const msg = String(log.message || '');
+                            const isSol = msg.includes('SOL');
+                            const isNeg = isSol && /-\s*\d/.test(msg);
+                            const isPos = isSol && /\+\s*\d/.test(msg);
+                            const pillClass =
+                                log.type === 'critical' || msg.includes('Slash') ? "bg-red-500 text-white border-red-400 scale-125" :
+                                isNeg ? "bg-black/60 text-red-200 border-red-400/50" :
+                                isPos ? "bg-black/60 text-emerald-200 border-emerald-400/50" :
+                                isSol ? "bg-black/60 text-slate-200 border-slate-400/40" :
+                                "bg-black/70 text-white border-gray-500";
+                            const text =
+                                isSol ? msg.split(' ').slice(-2).join(' ') : (msg.includes('Slash') ? '💥 SLASHED' : msg.slice(0, 15));
+                            return (
                         <div className={clsx(
                             "px-1.5 py-0.5 rounded text-[8px] font-mono border whitespace-nowrap animate-bounce shadow-lg",
-                            log.type === 'critical' || log.message.includes('Slash') ? "bg-red-500 text-white border-red-400 scale-125" :
-                            log.message.includes('SOL') ? "bg-emerald-500/90 text-white border-emerald-400" :
-                            "bg-black/70 text-white border-gray-500"
+                            pillClass
                         )}>
-                            {log.message.includes('SOL') ? log.message.split(' ').slice(-2).join(' ') : (log.message.includes('Slash') ? '💥 SLASHED' : log.message.slice(0, 15))}
+                            {text}
                         </div>
+                            );
+                        })()}
                     </Html>
                 ))}
 
@@ -346,6 +339,7 @@ export const AgentDrone = ({
                         onTogglePriority={togglePriority}
                         onTransferLock={transferLock} 
                         onTogglePause={togglePause}
+                        isCompact={isCompact}
                     />
                 )}
                 

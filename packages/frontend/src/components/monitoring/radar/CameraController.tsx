@@ -4,15 +4,20 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useRef, useEffect } from 'react';
 import { useUIStore } from '@/store/ui';
+import { getOrbitPosition } from '@/utils/orbit';
+import type { Agent } from '@/contexts/atcTypes';
 
 interface Props {
     targetPosition: [number, number, number] | null;
+    targetAgent?: Agent | null;
 }
 
-export const CameraController = ({ targetPosition }: Props) => {
+export const CameraController = ({ targetPosition, targetAgent }: Props) => {
     const { camera, controls } = useThree();
     const { selectedAgentId  } = useUIStore(useShallow(s => ({ selectedAgentId: s.selectedAgentId })));
     const targetVec = new THREE.Vector3();
+    const initialCameraPos = useRef<THREE.Vector3 | null>(null);
+    const initialTarget = useRef<THREE.Vector3 | null>(null);
     
     const isAutoZooming = useRef(false);
     const isUserInteracting = useRef(false);
@@ -21,6 +26,8 @@ export const CameraController = ({ targetPosition }: Props) => {
     useEffect(() => {
         if (!controls) return;
         const orbit = controls as any;
+        if (!initialCameraPos.current) initialCameraPos.current = camera.position.clone();
+        if (!initialTarget.current) initialTarget.current = orbit.target?.clone?.() ?? new THREE.Vector3();
 
         const handleStart = () => { 
             isUserInteracting.current = true; 
@@ -38,7 +45,7 @@ export const CameraController = ({ targetPosition }: Props) => {
             orbit.removeEventListener('start', handleStart);
             orbit.removeEventListener('end', handleEnd);
         };
-    }, [controls]);
+    }, [controls, camera.position]);
 
     useEffect(() => {
         if (selectedAgentId) {
@@ -60,8 +67,21 @@ export const CameraController = ({ targetPosition }: Props) => {
         // 사용자가 우클릭으로 화면을 옮기거나 회전 중일 때는 카메라 타겟을 강제로 고정하지 않음
         if (isUserInteracting.current) return;
 
-        if (targetPosition) {
-            targetVec.set(targetPosition[0], targetPosition[1], targetPosition[2]);
+        const orbitSeed = typeof (targetAgent as any)?.orbit?.seed === 'number' ? (targetAgent as any).orbit.seed : null;
+        const orbitSpawnTime = typeof (targetAgent as any)?.orbit?.spawnTime === 'number' ? (targetAgent as any).orbit.spawnTime : null;
+        const orbitTotalPausedMs = typeof (targetAgent as any)?.orbit?.totalPausedMs === 'number' ? (targetAgent as any).orbit.totalPausedMs : 0;
+        const hasOrbitTarget = orbitSeed !== null && orbitSpawnTime !== null;
+
+        if (selectedAgentId && (targetAgent || targetPosition)) {
+            if (hasOrbitTarget) {
+                const activeTime = Math.max(0, Date.now() - orbitSpawnTime - orbitTotalPausedMs);
+                const p = getOrbitPosition(orbitSeed, activeTime);
+                targetVec.set(p[0], p[1], p[2]);
+            } else if (targetPosition) {
+                targetVec.set(targetPosition[0], targetPosition[1], targetPosition[2]);
+            } else {
+                targetVec.set(0, 0, 0);
+            }
             orbit.target.lerp(targetVec, 0.1);
 
             if (isAutoZooming.current) {
@@ -76,6 +96,10 @@ export const CameraController = ({ targetPosition }: Props) => {
                     camera.position.lerp(targetCameraPos, 0.05);
                 }
             }
+            orbit.update();
+        } else if (initialCameraPos.current && initialTarget.current) {
+            orbit.target.lerp(initialTarget.current, 0.12);
+            camera.position.lerp(initialCameraPos.current, 0.08);
             orbit.update();
         }
     });

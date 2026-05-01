@@ -30,7 +30,7 @@ export const RadarBackground = ({ isDark }: RadarBackgroundProps) => {
     if (!positions || positions.length === 0) return null;
   
     return (
-      <points>
+      <points raycast={() => null}>
         <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"
