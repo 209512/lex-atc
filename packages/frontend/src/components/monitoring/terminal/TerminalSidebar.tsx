@@ -9,7 +9,7 @@ interface TerminalSidebarProps {
   isDark: boolean;
 }
 
-export const TerminalSidebar: React.FC<TerminalSidebarProps> = ({ filter, showOnlyEconomy, updateTerminalPreferences, isDark }) => {
+export const TerminalSidebar: React.FC<TerminalSidebarProps> = ({ filter, showOnlyEconomy: _showOnlyEconomy, updateTerminalPreferences, isDark }) => {
   return (
     <div className={clsx(
         "w-10 border-r flex flex-col items-center py-2 gap-1.5 shrink-0 overflow-y-auto scrollbar-hide", 
@@ -29,13 +29,13 @@ export const TerminalSidebar: React.FC<TerminalSidebarProps> = ({ filter, showOn
           { label: 'DONE', value: 'executed' },
           { label: 'FAIL', value: 'failed' },
         ].map(({ label, value }) => {
-            const isActive = !showOnlyEconomy && filter.toLowerCase() === String(value).toLowerCase();
+            const isActive = filter.toLowerCase() === String(value).toLowerCase();
             
             return (
                 <Tooltip key={label} content={`Filter: ${label}`} position="right">
                     <button 
                         aria-label={`Terminal type filter ${value}`}
-                        onClick={() => { updateTerminalPreferences({ filter: value, showOnlyEconomy: false }); }} 
+                        onClick={() => { updateTerminalPreferences({ filter: value }); }} 
                         className={clsx(
                             "text-[9px] font-bold w-6 h-6 flex items-center justify-center rounded transition-colors", 
                             isActive ? "bg-blue-500 text-white" : "text-gray-500 hover:bg-white/5"
