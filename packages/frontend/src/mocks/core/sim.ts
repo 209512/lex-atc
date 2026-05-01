@@ -17,6 +17,15 @@ const ACTIVITIES = [
 ];
 
 let simTimer: ReturnType<typeof setInterval> | null = null;
+let motionTimer: ReturnType<typeof setInterval> | null = null;
+const motionBuckets: Record<string, number> = {};
+const MOTION_CYCLE_MS = 800;
+const MOTION_POLL_MS = 200;
+const hashToInt = (s: string) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+};
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
@@ -59,6 +68,46 @@ const applyFluctuation = (base: RiskVector8, seed: number, t: number): RiskVecto
   ];
 };
 
+const motionTick = () => {
+  if (db.atcState.globalStop || db.agents.length === 0) {
+    broadcast();
+    return;
+  }
+
+  const now = Date.now();
+  const t = now / 1000;
+  let changed = false;
+
+  const alive = new Set(db.agents.map((a) => a.uuid));
+  for (const id of Object.keys(motionBuckets)) {
+    if (!alive.has(id)) delete motionBuckets[id];
+  }
+
+  for (const a of db.agents) {
+    const meta = db.agentMetas[a.uuid];
+    if (!meta || a.isPaused) continue;
+
+    const offset = hashToInt(a.uuid) % MOTION_CYCLE_MS;
+    const bucket = Math.floor((now + offset) / MOTION_CYCLE_MS);
+    if (motionBuckets[a.uuid] === bucket) continue;
+    motionBuckets[a.uuid] = bucket;
+
+    const activeTime = now - meta.spawnTime - meta.totalPausedMs;
+    const score = computeAgentScore(a, meta.holdingTicks || 0, db.atcState.collisionCount || 0);
+    const baseVector = safeRiskVector8(computeRiskVector(score, String(a.status || 'IDLE')));
+    const riskVector = applyFluctuation(baseVector, meta.seed, t);
+    const orbitalLevel = resolveOrbitalLevel(meta.seed, riskVector);
+    updateAgent(a.uuid, {
+      position: getOrbitPosition(meta.seed, activeTime),
+      riskVector,
+      orbitalLevel,
+    });
+    changed = true;
+  }
+
+  if (changed) broadcast();
+};
+
 const tick = () => {
   if (db.atcState.globalStop || db.agents.length === 0) {
     broadcast();
@@ -70,22 +119,6 @@ const tick = () => {
   if (active.length === 0) {
     broadcast();
     return;
-  }
-
-  const t = now / 1000;
-  for (const a of db.agents) {
-    const meta = db.agentMetas[a.uuid];
-    if (!meta || a.isPaused) continue;
-    const activeTime = now - meta.spawnTime - meta.totalPausedMs;
-    const score = computeAgentScore(a, meta.holdingTicks || 0, db.atcState.collisionCount || 0);
-    const baseVector = safeRiskVector8(computeRiskVector(score, String(a.status || 'IDLE')));
-    const riskVector = applyFluctuation(baseVector, meta.seed, t);
-    const orbitalLevel = resolveOrbitalLevel(meta.seed, riskVector);
-    updateAgent(a.uuid, {
-      position: getOrbitPosition(meta.seed, activeTime),
-      riskVector,
-      orbitalLevel,
-    });
   }
 
   const shouldTransfer =
@@ -220,11 +253,19 @@ const tick = () => {
 
 export const startSimulation = () => {
   if (simTimer) return;
+  if (!motionTimer) {
+    motionTick();
+    motionTimer = setInterval(motionTick, MOTION_POLL_MS);
+  }
   tick();
   simTimer = setInterval(tick, 2000);
 };
 
 export const stopSimulation = () => {
+  if (motionTimer) {
+    clearInterval(motionTimer);
+    motionTimer = null;
+  }
   if (simTimer) {
     clearInterval(simTimer);
     simTimer = null;
