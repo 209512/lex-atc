@@ -158,7 +158,10 @@ test.beforeEach(async ({ page }) => {
     timeout: 15000,
   });
   await page.goto(apiBase.replace('/api', '/')).catch(() => {});
-  await mswReady.catch(() => {});
+  const ready = await mswReady.then(() => true).catch(() => false);
+  if (!ready) {
+    throw new Error('MSW_NOT_READY');
+  }
   await safePost(page, `${apiBase}/release`);
   await safePost(page, `${apiBase}/stop`, { enable: false });
   await safePost(page, `${apiBase}/agents/scale`, { count: 2 });
