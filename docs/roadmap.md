@@ -13,10 +13,10 @@ This file tracks what is *not yet production-grade* and what we plan to improve.
   Target: escrow is persisted with idempotent reconciliation so restart recovery cannot lose or double-apply funds.  
   Pointers: [executeHostileTakeover](../packages/backend/src/core/LockDirector.js#L207-L236), [transfer timeout escrow rollback](../packages/backend/src/core/LockDirector.js#L163-L205), [escrow payout on acquire](../packages/backend/src/services/atc.service.js#L396-L434)
 - Utility/Entropy scheduling: scheduling based on measurable utility/entropy signals is R&D, not a stable policy  
-  Current: tickets/bids drive ordering; “entropy” exists as a risk/visualization axis, not a policy input.  
+  Current: tickets/bids drive ordering; entropy-based signals are not wired into policy decisions yet.  
   Target: auditable utility/entropy signals influence scheduling with clear metrics, thresholds, and replayable decisions.  
   Current queue/bid policy: [ensureTicket](../packages/backend/src/core/TicketManager.js#L10-L39), [cancelTicket](../packages/backend/src/core/TicketManager.js#L41-L65), [collectEscrowBid](../packages/backend/src/core/TicketManager.js#L99-L106)  
-  Entropy signal (currently visualization/risk axis): [computeRiskVector entropy axis](../packages/frontend/src/mocks/core/physics.ts#L35-L58)
+  Entropy signal (placeholder): planned as a measurable, auditable signal (see Target)
 - State channel coordinator: full channel lifecycle orchestration (Merkle snapshots, dispute windows) is not complete yet  
   Current: snapshots/disputes exist, but there is no coordinator that enforces periodic snapshotting and dispute windows end-to-end.  
   Target: a coordinator owns snapshot cadence, dispute/challenge windows, and finalization rules with recovery-safe state transitions.  

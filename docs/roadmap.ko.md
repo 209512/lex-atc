@@ -13,10 +13,10 @@
   목표: 에스크로를 영속화하고 idempotent 정산/복구를 제공해 재시작에서도 유실/중복 적용이 발생하지 않게 한다.  
   참고: [executeHostileTakeover](../packages/backend/src/core/LockDirector.js#L207-L236), [transfer timeout escrow rollback](../packages/backend/src/core/LockDirector.js#L163-L205), [escrow payout on acquire](../packages/backend/src/services/atc.service.js#L396-L434)
 - Utility/Entropy 스케줄링: 측정 가능한 utility/entropy 신호 기반 스케줄링은 R&D 트랙이며 안정 정책이 아님  
-  현재: tickets/bids가 순서를 결정하며, entropy는 현재 정책 입력이 아니라 시각화/리스크 축에 가깝다.  
+  현재: tickets/bids가 순서를 결정하며, entropy 기반 신호는 아직 정책 결정에 연결되어 있지 않다.  
   목표: 감사 가능한 utility/entropy 신호가 스케줄링에 영향을 주되, 지표/임계값/재현 가능한 결정 규칙을 갖춘다.  
   현재 큐/입찰 정책: [ensureTicket](../packages/backend/src/core/TicketManager.js#L10-L39), [cancelTicket](../packages/backend/src/core/TicketManager.js#L41-L65), [collectEscrowBid](../packages/backend/src/core/TicketManager.js#L99-L106)  
-  Entropy 신호(현재는 시각화/리스크 축): [computeRiskVector entropy axis](../packages/frontend/src/mocks/core/physics.ts#L35-L58)
+  Entropy 신호(placeholder): 측정 가능/감사 가능한 신호로 설계 예정(목표 참고)
 - 스테이트 채널 코디네이터: 채널 라이프사이클(머클 스냅샷, dispute window 등) 오케스트레이션이 완전하지 않음  
   현재: snapshots/disputes는 존재하지만, 주기적 스냅샷과 dispute window를 end-to-end로 강제하는 coordinator가 없다.  
   목표: coordinator가 스냅샷 주기, dispute/challenge 윈도우, 최종화 규칙을 소유하고 복구 가능한 전이를 제공한다.  
