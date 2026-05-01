@@ -1,5 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const e2eMode = (process.env.E2E_MODE || '').toLowerCase();
+const mswEnabled = e2eMode ? e2eMode !== 'backend' : true;
+
+const webServerEnv = mswEnabled
+  ? 'VITE_ENABLE_MSW=true VITE_API_URL=/api'
+  : 'VITE_ENABLE_MSW=false';
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -30,7 +37,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'pnpm build && pnpm preview --port 5180 --strictPort',
+      command: `${webServerEnv} pnpm build && ${webServerEnv} pnpm preview --port 5180 --strictPort`,
       url: process.env.VITE_APP_URL || 'http://127.0.0.1:5180',
       reuseExistingServer: true,
       timeout: 120000,
