@@ -49,7 +49,7 @@ export const L4Legend = ({ compact = false }: { compact?: boolean }) => {
             />
             {!compact && (
               <div className={clsx('text-[10px] leading-snug opacity-80 min-w-0 flex-1', isDark ? 'text-gray-400' : 'text-slate-600')}>
-                <div className="flex items-start gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0 min-h-[26px]">
                   <span className={clsx('shrink-0 px-2 py-0.5 rounded border text-[9px] font-bold tracking-[0.06em]', isDark ? 'border-white/10 bg-black/30 text-gray-200' : 'border-slate-200 bg-white text-slate-800')}>
                     {r.labelKo}:
                   </span>

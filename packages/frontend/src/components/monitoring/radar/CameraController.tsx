@@ -20,6 +20,7 @@ export const CameraController = ({ targetPosition, targetAgent }: Props) => {
     const targetVec = new THREE.Vector3();
     const initialCameraPos = useRef<THREE.Vector3 | null>(null);
     const initialTarget = useRef<THREE.Vector3 | null>(null);
+    const lastValidTarget = useRef<THREE.Vector3 | null>(null);
     const shouldReset = useRef(false);
     
     const isAutoZooming = useRef(false);
@@ -31,6 +32,7 @@ export const CameraController = ({ targetPosition, targetAgent }: Props) => {
         const orbit = controls as any;
         if (!initialCameraPos.current) initialCameraPos.current = camera.position.clone();
         if (!initialTarget.current) initialTarget.current = orbit.target?.clone?.() ?? new THREE.Vector3();
+        if (!lastValidTarget.current) lastValidTarget.current = orbit.target?.clone?.() ?? new THREE.Vector3();
 
         const handleStart = () => { 
             isUserInteracting.current = true; 
@@ -79,16 +81,20 @@ export const CameraController = ({ targetPosition, targetAgent }: Props) => {
         const hasOrbitTarget = orbitSeed !== null && orbitSpawnTime !== null;
         const isPaused = globalStop || String((targetAgent as any)?.status || '').toLowerCase() === 'paused' || (targetAgent as any)?.isPaused === true;
 
-        if (selectedAgentId && (targetAgent || targetPosition)) {
+        if (selectedAgentId) {
+            let hasTarget = false;
             if (!isPaused && hasOrbitTarget) {
                 const activeTime = Math.max(0, Date.now() - orbitSpawnTime - orbitTotalPausedMs);
                 const p = getOrbitPosition(orbitSeed, activeTime);
                 targetVec.set(p[0], p[1], p[2]);
+                hasTarget = true;
             } else if (targetPosition) {
                 targetVec.set(targetPosition[0], targetPosition[1], targetPosition[2]);
-            } else {
-                targetVec.set(0, 0, 0);
+                hasTarget = true;
+            } else if (lastValidTarget.current) {
+                targetVec.copy(lastValidTarget.current);
             }
+            if (hasTarget) lastValidTarget.current = targetVec.clone();
             orbit.target.lerp(targetVec, 0.1);
 
             if (isAutoZooming.current) {
