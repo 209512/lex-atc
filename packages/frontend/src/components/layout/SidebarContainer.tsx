@@ -3,8 +3,11 @@ import { useShallow } from 'zustand/react/shallow';
 import React, { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import { Link } from 'react-router-dom';
+import { Pause, Play } from 'lucide-react';
 import { useUIStore } from '@/store/ui';
 import { useSidebarResize } from '@/hooks/system/useSidebarResize';
+import { useModalStore } from '@/store/ui/modalStore';
+import { useATCStore } from '@/store/atc';
 
 import { SidebarHeader } from '@/components/sidebar/SidebarHeader';
 import { SidebarControlPanel } from '@/components/sidebar/SidebarControlPanel';
@@ -47,6 +50,8 @@ export const SidebarContainer = () => {
         updateSidebarPreferences: s.updateSidebarPreferences,
         updateUIPreferences: s.updateUIPreferences
     })));
+    const { setPolicyModalOpen } = useModalStore(useShallow(s => ({ setPolicyModalOpen: s.setPolicyModalOpen })));
+    const { globalStop, toggleGlobalStop } = useATCStore(useShallow(s => ({ globalStop: !!s.state?.globalStop, toggleGlobalStop: s.toggleGlobalStop })));
     const [uptime, setUptime] = useState(0);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const lastExpandedWidth = useRef(450);
@@ -137,8 +142,50 @@ export const SidebarContainer = () => {
                     <L4StatusPanel />
                 </SidebarSection>
             );
-            case 'ops': return <SidebarSection key={key} {...props}><OperationsPanel /></SidebarSection>;
-            case 'agents': return <SidebarSection key={key} {...props}><AgentList /></SidebarSection>;
+            case 'ops': return (
+                <SidebarSection
+                    key={key}
+                    {...props}
+                    titleAddon={(
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setPolicyModalOpen(true); }}
+                            className={clsx(
+                                'shrink-0 rounded border px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.12em] transition',
+                                isDark ? 'border-blue-500/30 bg-blue-500/10 text-blue-200 hover:bg-blue-500/15' : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                            )}
+                        >
+                            templates
+                        </button>
+                    )}
+                >
+                    <OperationsPanel />
+                </SidebarSection>
+            );
+            case 'agents': return (
+                <SidebarSection
+                    key={key}
+                    {...props}
+                    titleAddon={(
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); toggleGlobalStop(); }}
+                            className={clsx(
+                                'shrink-0 rounded border px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.12em] transition inline-flex items-center gap-1',
+                                globalStop
+                                    ? (isDark ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/15' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100')
+                                    : (isDark ? 'border-amber-500/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/15' : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100')
+                            )}
+                            aria-label={globalStop ? '전체 재개' : '전체 일시정지'}
+                        >
+                            {globalStop ? <Play size={12} /> : <Pause size={12} />}
+                            {globalStop ? 'resume' : 'pause'}
+                        </button>
+                    )}
+                >
+                    <AgentList />
+                </SidebarSection>
+            );
             default: return null;
         }
     };

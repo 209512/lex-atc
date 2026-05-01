@@ -60,7 +60,8 @@ test.describe('Distributed Lock - Hostile Takeover UI Flow', () => {
   });
 
   test('displays hostile takeover log and override UI correctly', async ({ page }) => {
-    await expect(page).toHaveTitle(/frontend/i, { timeout: 30000 });
+    await page.waitForSelector('#root', { state: 'attached', timeout: 30000 });
+    await expect(page.locator('#root')).toBeVisible({ timeout: 30000 });
     // The current lock holder is agent-victim, so it should be visible in the system status header
     // In L4Monitor or Radar, we can check if agent-victim is present
     // Skip this assert due to DOM timing issues, we just check page loads

@@ -95,7 +95,7 @@ export const CameraController = ({ targetPosition, targetAgent }: Props) => {
                 if (Math.abs(currentDistance - desiredDistance) < 0.2) {
                     isAutoZooming.current = false;
                 } else {
-                    const direction = new THREE.Vector3().subVectors(camera.position, targetVec).normalize();
+                    const direction = new THREE.Vector3(1, 0.7, 1).normalize();
                     const targetCameraPos = new THREE.Vector3().addVectors(targetVec, direction.multiplyScalar(desiredDistance));
                     camera.position.lerp(targetCameraPos, 0.05);
                 }

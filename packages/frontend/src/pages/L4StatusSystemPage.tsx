@@ -29,7 +29,7 @@ export const L4StatusSystemPage = () => {
           </Link>
         </div>
 
-        <div className="mt-4 pb-2">
+        <div className="mt-4">
           <L4Legend />
         </div>
       </div>

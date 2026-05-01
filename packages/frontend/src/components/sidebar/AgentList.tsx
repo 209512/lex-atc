@@ -1,9 +1,8 @@
 // src/components/sidebar/AgentList.tsx
 import { useShallow } from 'zustand/react/shallow';
 import React from 'react';
-import { Star, Shield, Play, Pause } from 'lucide-react';
+import { Star, Shield } from 'lucide-react';
 import { Reorder } from 'framer-motion';
-import clsx from 'clsx';
 import { useATCStore } from '@/store/atc';
 import { useUIStore } from '@/store/ui';
 import { useTacticalActions } from '@/hooks/agent/useTacticalActions';
@@ -17,8 +16,7 @@ export const AgentList = () => {
     const { selectedAgentId, setSelectedAgentId, isDark  } = useUIStore(useShallow(s => ({ selectedAgentId: s.selectedAgentId, setSelectedAgentId: s.setSelectedAgentId, isDark: s.isDark })));
     const { 
         onTogglePause, onTransferLock, togglePriority, terminateAgent,
-        renamingId, newName, setNewName, handleStartRename, handleCancelRename, handleConfirmRename,
-        toggleGlobalStop 
+        renamingId, newName, setNewName, handleStartRename, handleCancelRename, handleConfirmRename
     } = useTacticalActions();
 
     const { priorityAgents, normalAgents, priorityIds } = useCategorizedAgents();
@@ -49,25 +47,6 @@ export const AgentList = () => {
 
     return (
         <div className="space-y-4 select-none pb-40 px-1">
-            <div className="flex justify-end mb-6 px-1">
-                <Tooltip content={state?.globalStop ? "Resume All" : "Halt All"} position="bottom-left">
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); toggleGlobalStop(); }}
-                        className={clsx(
-                            "px-4 py-1.5 rounded-full text-[10px] font-black transition-all flex items-center gap-1.5 border shadow-md",
-                            state?.globalStop 
-                                ? "bg-red-500 text-white border-red-600 animate-pulse" 
-                                : (isDark 
-                                    ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" 
-                                    : "bg-white border-slate-400 text-slate-700 hover:bg-slate-50")
-                        )}
-                    >
-                        {state?.globalStop ? <Play size={10} fill="currentColor"/> : <Pause size={10} fill="currentColor"/>}
-                        {state?.globalStop ? "RESUME SYSTEM" : "HALT SYSTEM"}
-                    </button>
-                </Tooltip>
-            </div>
-
             <div className="space-y-8">
                 {/* Priority Section */}
                 <section>
