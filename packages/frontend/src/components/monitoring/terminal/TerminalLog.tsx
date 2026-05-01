@@ -150,8 +150,6 @@ export const TerminalLog = () => {
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
                         showOnlyEconomy={showOnlyEconomy}
-                        filteredLogsCount={filteredLogs.length}
-                        totalLogsCount={state?.logs?.length || 0}
                         updateTerminalPreferences={updateTerminalPreferences}
                         saveLogs={saveLogs}
                         autoScroll={autoScroll}
@@ -176,6 +174,8 @@ export const TerminalLog = () => {
                                     />
                                     <div className="flex-1 flex flex-col min-w-0">
                                         <TerminalFiltersBar 
+                                            filteredLogsCount={filteredLogs.length}
+                                            totalLogsCount={state?.logs?.length || 0}
                                             actionKeyFilter={actionKeyFilter}
                                             updateTerminalPreferences={updateTerminalPreferences}
                                             actionFilterGroups={actionFilterGroups}

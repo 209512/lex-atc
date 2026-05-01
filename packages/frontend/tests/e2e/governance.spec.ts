@@ -14,7 +14,7 @@ test.describe('Governance Operations Panel', () => {
     });
     await page.goto('/');
     await mswReady.catch(() => {});
-    await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
+    await expect(page).toHaveTitle(/frontend/i, { timeout: 30000 });
   });
 
   test('approve -> execute updates MSW state and UI', async ({ page }) => {

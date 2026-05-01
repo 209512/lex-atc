@@ -41,14 +41,14 @@ export const L4Legend = ({ compact = false }: { compact?: boolean }) => {
 
       <div className={clsx('mt-3 grid gap-2', compact ? 'grid-cols-1' : 'grid-cols-1')}>
         {rows.map((r) => (
-          <div key={`${r.axis}:${r.code}`} className="flex items-start justify-between gap-3">
+          <div key={`${r.axis}:${r.code}`} className="flex items-start gap-3 min-w-0">
             <StatusBadge
               axis={r.axis}
               state={{ axis: r.axis, code: r.code, updatedAt: new Date(0).toISOString(), message: r.definitionKo, labelOverride: r.code }}
               compact={compact}
             />
             {!compact && (
-              <div className={clsx('text-[10px] leading-snug opacity-80', isDark ? 'text-gray-400' : 'text-slate-600')}>
+              <div className={clsx('text-[10px] leading-snug opacity-80 min-w-0 flex-1', isDark ? 'text-gray-400' : 'text-slate-600')}>
                 <div className="font-semibold">{r.labelKo}</div>
                 <div>{r.definitionKo}</div>
               </div>

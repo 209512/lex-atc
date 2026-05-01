@@ -3,6 +3,8 @@ import clsx from 'clsx';
 import { domainFilterOptions } from './logFilters';
 
 interface TerminalFiltersBarProps {
+  filteredLogsCount: number;
+  totalLogsCount: number;
   actionKeyFilter: string;
   updateTerminalPreferences: (prefs: any) => void;
   actionFilterGroups: {domain: string, actions: string[]}[];
@@ -11,6 +13,8 @@ interface TerminalFiltersBarProps {
 }
 
 export const TerminalFiltersBar: React.FC<TerminalFiltersBarProps> = ({
+  filteredLogsCount,
+  totalLogsCount,
   actionKeyFilter,
   updateTerminalPreferences,
   actionFilterGroups,
@@ -36,22 +40,27 @@ export const TerminalFiltersBar: React.FC<TerminalFiltersBarProps> = ({
                 ))}
             </select>
         </div>
-        <div className="flex flex-wrap gap-1">
-            {domainFilterOptions.map((option) => (
-                <button
-                    key={option.value}
-                    aria-label={`Terminal domain filter ${option.value}`}
-                    onClick={() => updateTerminalPreferences({ domainFilter: option.value })}
-                    className={clsx(
-                        "rounded px-2 py-1 text-[9px] font-mono font-bold transition-colors",
-                        domainFilter === option.value
-                            ? "bg-blue-600 text-white"
-                            : (isDark ? "bg-white/5 text-gray-400 hover:bg-white/10" : "bg-slate-100 text-slate-500 hover:bg-slate-200")
-                    )}
-                >
-                    {option.label}
-                </button>
-            ))}
+        <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-1">
+                {domainFilterOptions.map((option) => (
+                    <button
+                        key={option.value}
+                        aria-label={`Terminal domain filter ${option.value}`}
+                        onClick={() => updateTerminalPreferences({ domainFilter: option.value })}
+                        className={clsx(
+                            "rounded px-2 py-1 text-[9px] font-mono font-bold transition-colors",
+                            domainFilter === option.value
+                                ? "bg-blue-600 text-white"
+                                : (isDark ? "bg-white/5 text-gray-400 hover:bg-white/10" : "bg-slate-100 text-slate-500 hover:bg-slate-200")
+                        )}
+                    >
+                        {option.label}
+                    </button>
+                ))}
+            </div>
+            <div className={clsx("text-[9px] font-mono uppercase tracking-[0.12em] tabular-nums shrink-0", isDark ? "text-gray-500" : "text-slate-500")}>
+                {filteredLogsCount}/{totalLogsCount} logs
+            </div>
         </div>
     </div>
   );
