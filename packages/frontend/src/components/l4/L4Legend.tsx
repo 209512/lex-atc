@@ -41,7 +41,7 @@ export const L4Legend = ({ compact = false }: { compact?: boolean }) => {
 
       <div className={clsx('mt-3 grid gap-2', compact ? 'grid-cols-1' : 'grid-cols-1')}>
         {rows.map((r) => (
-          <div key={`${r.axis}:${r.code}`} className="flex items-start gap-3 min-w-0">
+          <div key={`${r.axis}:${r.code}`} className="flex items-center gap-3 min-w-0">
             <StatusBadge
               axis={r.axis}
               state={{ axis: r.axis, code: r.code, updatedAt: new Date(0).toISOString(), message: r.definitionKo, labelOverride: r.code }}

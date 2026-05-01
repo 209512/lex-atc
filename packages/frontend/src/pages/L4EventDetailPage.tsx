@@ -53,7 +53,7 @@ export const L4EventDetailPage = () => {
             <div className={clsx('text-[18px] font-black tracking-tight', isDark ? 'text-white/80' : 'text-slate-900')}>
               {snap.entityKind} · {formatId(snap.entityId)}
             </div>
-            <div className={clsx('mt-1 text-[11px] font-mono opacity-70 tabular-nums', isDark ? 'text-gray-400' : 'text-slate-600')}>
+            <div className={clsx('text-[11px] font-mono opacity-70 tabular-nums whitespace-nowrap truncate', isDark ? 'text-gray-400' : 'text-slate-600')}>
               occurredAt: {new Date(snap.occurredAt).toLocaleString()}
             </div>
           </div>
