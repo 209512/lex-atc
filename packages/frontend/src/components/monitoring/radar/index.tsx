@@ -45,7 +45,7 @@ export const Radar: React.FC<{ compact?: boolean; isMainView?: boolean }> = ({ c
             style={{ backgroundColor: isDark ? "#050505" : "#f8fafc" }}
         >
             {!compact && (
-                <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
+                <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 pointer-events-none">
                     <div className={clsx(
                         "flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-md text-[9px] font-mono font-bold transition-all duration-300", 
                         isDark ? "bg-black/40 border-white/10 text-white/60" : "bg-white/60 border-black/5 text-black/60"
