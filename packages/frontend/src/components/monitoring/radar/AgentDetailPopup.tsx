@@ -51,10 +51,13 @@ export const AgentDetailPopup = ({
     const agentKey = agent?.id ?? '';
     const baseY = isCompact ? -120 : -150;
     const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: baseY });
+    const offsetRef = useRef<{ x: number; y: number }>({ x: 0, y: baseY });
     const dragRef = useRef<{ active: boolean; startX: number; startY: number; originX: number; originY: number }>({ active: false, startX: 0, startY: 0, originX: 0, originY: 0 });
+    const rafRef = useRef<number | null>(null);
 
     useEffect(() => {
-        setOffset({ x: 0, y: baseY });
+        offsetRef.current = { x: 0, y: baseY };
+        setOffset(offsetRef.current);
         dragRef.current.active = false;
     }, [agentKey, baseY]);
 
@@ -64,17 +67,25 @@ export const AgentDetailPopup = ({
         if (!el) return;
         const pad = 10;
 
+        const apply = (next: { x: number; y: number }) => {
+            el.style.transform = `translate3d(${next.x}px, ${next.y}px, 0)`;
+        };
+
         const clamp = () => {
-            let dx = offset.x;
-            let dy = offset.y;
-            el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+            let dx = offsetRef.current.x;
+            let dy = offsetRef.current.y;
+            apply({ x: dx, y: dy });
 
             const rect = el.getBoundingClientRect();
             if (rect.top < pad) dy += pad - rect.top;
             if (rect.bottom > window.innerHeight - pad) dy -= rect.bottom - (window.innerHeight - pad);
             if (rect.left < pad) dx += pad - rect.left;
             if (rect.right > window.innerWidth - pad) dx -= rect.right - (window.innerWidth - pad);
-            if (dx !== offset.x || dy !== offset.y) setOffset({ x: dx, y: dy });
+            if (dx !== offsetRef.current.x || dy !== offsetRef.current.y) {
+                offsetRef.current = { x: dx, y: dy };
+                apply(offsetRef.current);
+                setOffset(offsetRef.current);
+            }
         };
 
         const raf = requestAnimationFrame(clamp);
@@ -83,25 +94,37 @@ export const AgentDetailPopup = ({
             cancelAnimationFrame(raf);
             window.removeEventListener('resize', clamp);
         };
-    }, [agentKey, isCompact, offset.x, offset.y]);
+    }, [agentKey, isCompact]);
 
     if (!agent || !position) return null;
 
     const startDrag = (e: React.PointerEvent) => {
         e.stopPropagation();
-        dragRef.current = { active: true, startX: e.clientX, startY: e.clientY, originX: offset.x, originY: offset.y };
+        dragRef.current = { active: true, startX: e.clientX, startY: e.clientY, originX: offsetRef.current.x, originY: offsetRef.current.y };
 
         const onMove = (ev: PointerEvent) => {
             if (!dragRef.current.active) return;
             const dx = ev.clientX - dragRef.current.startX;
             const dy = ev.clientY - dragRef.current.startY;
-            setOffset({ x: dragRef.current.originX + dx, y: dragRef.current.originY + dy });
+            offsetRef.current = { x: dragRef.current.originX + dx, y: dragRef.current.originY + dy };
+            if (rafRef.current == null) {
+                rafRef.current = requestAnimationFrame(() => {
+                    rafRef.current = null;
+                    const el = popupRef.current;
+                    if (el) el.style.transform = `translate3d(${offsetRef.current.x}px, ${offsetRef.current.y}px, 0)`;
+                });
+            }
         };
 
         const onUp = () => {
             dragRef.current.active = false;
             window.removeEventListener('pointermove', onMove);
             window.removeEventListener('pointerup', onUp);
+            if (rafRef.current != null) {
+                cancelAnimationFrame(rafRef.current);
+                rafRef.current = null;
+            }
+            setOffset(offsetRef.current);
         };
 
         window.addEventListener('pointermove', onMove);

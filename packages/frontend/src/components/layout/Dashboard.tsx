@@ -29,6 +29,8 @@ export const Dashboard = () => {
   useEffect(() => {
     const hasSeenTour = localStorage.getItem('lex-atc-tour-seen');
     if (!hasSeenTour) {
+      const ui = useUIStore.getState();
+      ui.updateFloatingPanel?.('terminal', { isOpen: true, isCollapsed: false });
       setRunTour(true);
     }
   }, []);
@@ -83,7 +85,7 @@ export const Dashboard = () => {
     {
       target: '.tour-step-terminal',
       content: t('tour.terminal'),
-      placement: 'top',
+      placement: 'left',
     },
     {
       target: '.tour-step-emergency',

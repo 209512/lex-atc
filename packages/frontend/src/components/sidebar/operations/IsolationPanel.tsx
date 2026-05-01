@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import clsx from 'clsx';
-import { Hammer } from 'lucide-react';
+import { Hammer, ChevronDown } from 'lucide-react';
 import { useATCStore } from '@/store/atc';
 import { useShallow } from 'zustand/react/shallow';
 import { atcApi } from '@/contexts/atcApi';
@@ -8,7 +8,7 @@ import { formatId } from '@/utils/agentIdentity';
 import { isolationHelp, isolationPresets } from '@/components/sidebar/opsConsoleConfig';
 import { getSectionCardClass, getRowCardClass, getActionButtonClass, Spinner, getInputClass, getHelpPillClass, CommonPanelProps, ActionStatusBadge } from './opsUiHelpers';
 
-export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, status, runAction }) => {
+export const IsolationPanel: React.FC<CommonPanelProps & { collapsed?: boolean; onToggleCollapsed?: () => void }> = ({ isDark, busy, status, runAction, collapsed = false, onToggleCollapsed }) => {
   const state = useATCStore(useShallow(s => s.state));
   const addLog = useATCStore(s => s.addLog);
   const [taskAdminId, setTaskAdminId] = useState('');
@@ -31,14 +31,21 @@ export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, statu
   return (
     <section data-testid="ops-isolation" className={getSectionCardClass(isDark)}>
       <div className="flex items-center justify-between">
-        <div className={clsx('flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.12em]', isDark ? 'text-blue-200' : 'text-blue-800')}>
-          <Hammer size={11} />
-          Isolation
-        </div>
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          className={clsx('flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.12em] min-w-0', isDark ? 'text-blue-200' : 'text-blue-800')}
+        >
+          <Hammer size={11} className="shrink-0" />
+          <span className="truncate">Isolation</span>
+          <ChevronDown size={12} className={clsx('shrink-0 opacity-60 transition-transform', collapsed && '-rotate-90')} />
+        </button>
         <span className={clsx('text-[9px] font-mono', isDark ? 'text-gray-500' : 'text-slate-500')}>
           {tasks.length} actionable
         </span>
       </div>
+      {!collapsed && (
+        <>
       <div className="mt-2 flex items-center gap-2">
         <button
           disabled={busy[emergencyKey] || state.globalStop}
@@ -217,6 +224,8 @@ export const IsolationPanel: React.FC<CommonPanelProps> = ({ isDark, busy, statu
           </div>
         );
       })}
+        </>
+      )}
     </section>
   );
 };
