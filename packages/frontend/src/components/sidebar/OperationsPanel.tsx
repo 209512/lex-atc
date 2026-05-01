@@ -18,6 +18,7 @@ export const OperationsPanel = () => {
   const [busy, setBusy] = useState<BusyMap>({});
   const [status, setStatus] = useState<ActionStatusMap>({});
   const { setPolicyModalOpen } = useModalStore();
+  const [collapsed, setCollapsed] = useState<{ governance: boolean; isolation: boolean }>({ governance: false, isolation: false });
 
   const runAction = useCallback(async ({
     key,
@@ -112,8 +113,22 @@ export const OperationsPanel = () => {
       </div>
 
       <div className="mt-3 space-y-3">
-        <GovernancePanel isDark={isDark} busy={busy} status={status} runAction={runAction} />
-        <IsolationPanel isDark={isDark} busy={busy} status={status} runAction={runAction} />
+        <GovernancePanel
+          isDark={isDark}
+          busy={busy}
+          status={status}
+          runAction={runAction}
+          collapsed={collapsed.governance}
+          onToggleCollapsed={() => setCollapsed((prev) => ({ ...prev, governance: !prev.governance }))}
+        />
+        <IsolationPanel
+          isDark={isDark}
+          busy={busy}
+          status={status}
+          runAction={runAction}
+          collapsed={collapsed.isolation}
+          onToggleCollapsed={() => setCollapsed((prev) => ({ ...prev, isolation: !prev.isolation }))}
+        />
         <SettlementPanel isDark={isDark} busy={busy} status={status} runAction={runAction} />
       </div>
     </div>

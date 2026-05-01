@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import clsx from 'clsx';
-import { Gavel } from 'lucide-react';
+import { Gavel, ChevronDown } from 'lucide-react';
 import { useATCStore } from '@/store/atc';
 import { useShallow } from 'zustand/react/shallow';
 import { atcApi } from '@/contexts/atcApi';
@@ -8,7 +8,7 @@ import { governanceHelp, governancePresets, proposalActionHelp, proposalActions 
 import { getSectionCardClass, getRowCardClass, getActionButtonClass, Spinner, getInputClass, getHelpPillClass, CommonPanelProps, ActionStatusBadge } from './opsUiHelpers';
 import { buildProposalParams } from './opsUtils';
 
-export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, status, runAction }) => {
+export const GovernancePanel: React.FC<CommonPanelProps & { collapsed?: boolean; onToggleCollapsed?: () => void }> = ({ isDark, busy, status, runAction, collapsed = false, onToggleCollapsed }) => {
   const state = useATCStore(useShallow(s => s.state));
   const { addLog, playAlert } = useATCStore(useShallow(s => ({
     addLog: s.addLog,
@@ -87,14 +87,21 @@ export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, stat
   return (
     <section data-testid="ops-governance" className={getSectionCardClass(isDark)}>
       <div className="flex items-center justify-between">
-        <div className={clsx('flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.12em]', isDark ? 'text-amber-200' : 'text-amber-800')}>
-          <Gavel size={11} />
-          Governance
-        </div>
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          className={clsx('flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.12em] min-w-0', isDark ? 'text-amber-200' : 'text-amber-800')}
+        >
+          <Gavel size={11} className="shrink-0" />
+          <span className="truncate">Governance</span>
+          <ChevronDown size={12} className={clsx('shrink-0 opacity-60 transition-transform', collapsed && '-rotate-90')} />
+        </button>
         <span className={clsx('text-[9px] font-mono', isDark ? 'text-gray-500' : 'text-slate-500')}>
           {proposals.length} active
         </span>
       </div>
+      {!collapsed && (
+        <>
       <div className="grid grid-cols-1 gap-1.5">
         <div className={clsx('text-[9px] font-mono uppercase tracking-[0.12em] opacity-70', isDark ? 'text-gray-500' : 'text-slate-500')}>
           Presets
@@ -311,6 +318,8 @@ export const GovernancePanel: React.FC<CommonPanelProps> = ({ isDark, busy, stat
           </div>
         ))}
       </div>
+        </>
+      )}
     </section>
   );
 };

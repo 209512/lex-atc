@@ -132,9 +132,7 @@ export const ControlTower = () => {
 
             {viewMode === 'operator' && (
                 <>
-                    <div className="tour-step-terminal">
-                        <TerminalLog />
-                    </div>
+                    <TerminalLog />
                     <QueueDisplay />
                     <TacticalPanel />
                     <SmartAlerts />

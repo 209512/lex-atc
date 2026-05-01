@@ -22,35 +22,35 @@ export const SidebarHeader = ({ onOpenSettings }: { onOpenSettings: () => void }
             "p-4 border-b flex justify-between items-center transition-colors duration-500 min-w-0 shrink-0",
             isHuman ? "bg-red-500/10 border-red-500/30" : (isDark ? "border-gray-800" : "border-slate-200/40")
         )}>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className={clsx("p-2 rounded-lg min-w-0", isHuman ? "bg-red-500 text-white animate-pulse" : (isDark ? "bg-gray-800 text-blue-400" : "bg-white text-blue-600 shadow-sm"))}>
                     {isHuman ? <ShieldAlert size={20} /> : <Activity size={20} />}
                 </div>
                 <div className="min-w-0 flex-1">
                     <Tooltip content="Main Control Panel" position="bottom">
-                        <h2 className="font-bold text-sm tracking-wide min-w-0" data-testid="traffic-control-title">
-                            <span className="truncate block">TRAFFIC CONTROL</span>
+                        <h2 className="font-bold text-sm tracking-wide min-w-0 flex items-center gap-2" data-testid="traffic-control-title">
+                            <span className="truncate block min-w-0">TRAFFIC CONTROL</span>
+                            <span
+                                className={clsx(
+                                    'shrink-0 px-1.5 py-0.5 rounded border text-[9px] font-bold tracking-[0.14em] uppercase',
+                                    modeLabel.startsWith('SIMULATION') && (isDark ? 'border-amber-400/30 bg-amber-400/10 text-amber-200' : 'border-amber-300 bg-amber-50 text-amber-800'),
+                                    modeLabel.startsWith('BACKEND') && (isDark ? 'border-sky-400/30 bg-sky-400/10 text-sky-200' : 'border-sky-300 bg-sky-50 text-sky-800'),
+                                )}
+                                data-testid="deployment-mode-badge"
+                                title={frontendConfig.api.baseUrl}
+                            >
+                                {modeLabel}
+                            </span>
                         </h2>
                     </Tooltip>
                     <div className="flex items-center gap-2 text-[10px] opacity-60 font-mono min-w-0">
                         <span className={clsx("w-1.5 h-1.5 rounded-full", isHuman ? "bg-red-500" : "bg-emerald-500")}></span>
                         <span className="shrink-0">{isHuman ? "MANUAL OVERRIDE" : "AUTONOMOUS"}</span>
-                        <span
-                            className={clsx(
-                                'shrink-0 px-1.5 py-0.5 rounded border text-[9px] font-bold tracking-[0.14em] uppercase',
-                                modeLabel.startsWith('SIMULATION') && (isDark ? 'border-amber-400/30 bg-amber-400/10 text-amber-200' : 'border-amber-300 bg-amber-50 text-amber-800'),
-                                modeLabel.startsWith('BACKEND') && (isDark ? 'border-sky-400/30 bg-sky-400/10 text-sky-200' : 'border-sky-300 bg-sky-50 text-sky-800'),
-                            )}
-                            data-testid="deployment-mode-badge"
-                            title={frontendConfig.api.baseUrl}
-                        >
-                            {modeLabel}
-                        </span>
                         <span className="opacity-40 truncate min-w-0">HOLDER: {holderLabel}</span>
                     </div>
                 </div>
             </div>
-            <div className="flex items-center gap-1 min-w-0">
+            <div className="flex items-center gap-1 shrink-0">
                 <Tooltip content="Collapse to HUD Rail" position="bottom-left">
                     <button aria-label="HUD rail로 축소" onClick={() => setSidebarWidth(72)} className="p-2 rounded-md hover:bg-white/10">
                         <span className="sr-only">HUD rail로 축소</span>
