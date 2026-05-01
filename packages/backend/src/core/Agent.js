@@ -411,6 +411,7 @@ class Agent {
                   account: this.account,
                   model: this.config.model || 'Mock',
                   position: position, 
+                  orbit: { seed: this.seed, spawnTime: this.startTime, totalPausedMs: totalPauseTime },
                   lastUpdated: now,
                   priority: (this.eventBus.state.priorityAgents || []).includes(this.uuid),
                   shardId: this.currentShardId,
