@@ -24,6 +24,11 @@ export interface LexAgent {
   model: string;
   provider?: string;
   position: [number, number, number];
+  orbit?: {
+    seed: number;
+    spawnTime: number;
+    totalPausedMs: number;
+  };
   orbitalLevel?: OrbitalLevel;
   riskVector?: RiskVector8;
   lastUpdated: number;
