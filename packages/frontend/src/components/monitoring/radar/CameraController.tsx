@@ -34,6 +34,7 @@ export const CameraController = ({ targetPosition, targetAgent }: Props) => {
             isUserInteracting.current = true; 
             // 사용자가 수동 조작을 시작하면 자동 줌 모드 해제
             isAutoZooming.current = false;
+            shouldReset.current = false;
         };
         const handleEnd = () => { 
             isUserInteracting.current = false; 
