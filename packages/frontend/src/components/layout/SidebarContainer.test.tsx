@@ -1,5 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { SidebarContainer } from '@/components/layout/SidebarContainer';
 import { createATCValue } from '@/test/renderWithProviders';
 import { useATCStore } from '@/store/atc';
@@ -56,7 +57,11 @@ describe('SidebarContainer', () => {
 
     useATCStore.setState(atcValue);
 
-    render(<Wrapper />);
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <Wrapper />
+      </MemoryRouter>
+    );
 
     expect(screen.getByText('SystemStatsContent')).toBeInTheDocument();
 

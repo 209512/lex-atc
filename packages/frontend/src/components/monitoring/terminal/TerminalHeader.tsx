@@ -7,6 +7,8 @@ interface TerminalHeaderProps {
   activeTab: 'logs' | 'analytics';
   setActiveTab: (tab: 'logs' | 'analytics') => void;
   showOnlyEconomy: boolean;
+  filteredLogsCount: number;
+  totalLogsCount: number;
   updateTerminalPreferences: (prefs: any) => void;
   saveLogs: () => void;
   autoScroll: boolean;
@@ -20,7 +22,7 @@ interface TerminalHeaderProps {
 }
 
 export const TerminalHeader: React.FC<TerminalHeaderProps> = ({
-  activeTab, setActiveTab, showOnlyEconomy, updateTerminalPreferences,
+  activeTab, setActiveTab, showOnlyEconomy, filteredLogsCount, totalLogsCount, updateTerminalPreferences,
   saveLogs, autoScroll, isAdminMuted, toggleAdminMute,
   restoreDefaultTerminalPreferences, isCollapsed, toggleCollapsed, onClose, isDark
 }) => {
@@ -61,6 +63,9 @@ export const TerminalHeader: React.FC<TerminalHeaderProps> = ({
                             )}
                         >💰 ECON</button>
                     </Tooltip>
+                    <div className={clsx("text-[9px] font-mono uppercase tracking-[0.12em] tabular-nums", isDark ? "text-gray-500" : "text-slate-500")}>
+                        {filteredLogsCount}/{totalLogsCount}
+                    </div>
 
                     <Tooltip content="Save Logs" position="bottom">
                         <button onClick={saveLogs} className="p-1 rounded hover:bg-white/10 text-gray-500"><Save size={13} /></button>

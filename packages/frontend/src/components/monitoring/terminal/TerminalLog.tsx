@@ -8,7 +8,7 @@ import { TerminalHeader } from './TerminalHeader';
 import { TerminalSidebar } from './TerminalSidebar';
 import { TerminalFiltersBar } from './TerminalFiltersBar';
 import { LogList } from './LogList';
-import { matchesPrimaryFilter, knownActionGroups } from './logFilters';
+import { isEconomyLog, matchesPrimaryFilter, knownActionGroups } from './logFilters';
 import { TerminalAnalytics } from './TerminalAnalytics';
 import { useClampFloatingPanel } from '@/hooks/system/useClampFloatingPanel';
 
@@ -59,14 +59,30 @@ export const TerminalLog = () => {
     return map;
   }, [agents]);
 
+  const actionFilterGroups = useMemo(() => {
+    const grouped = new Map<string, Set<string>>();
+    (state?.logs || []).forEach((log: any) => {
+      const domain = log?.domain ? String(log.domain) : '';
+      const actionKey = log?.actionKey ? String(log.actionKey) : '';
+      if (!domain || !actionKey) return;
+      if (!grouped.has(domain)) grouped.set(domain, new Set());
+      grouped.get(domain)?.add(actionKey);
+    });
+
+    return Object.keys(knownActionGroups).map((domain) => ({
+      domain,
+      actions: Array.from(new Set([...(knownActionGroups[domain] || []), ...(grouped.get(domain) ? Array.from(grouped.get(domain) || []) : [])])).sort(),
+    })).filter((group) => group.actions.length > 0);
+  }, [state?.logs]);
+
   const filteredLogs = useMemo(() => {
     const allLogs = state?.logs || [];
     return allLogs.filter(l => {
-        if (showOnlyEconomy) return l.domain === 'economy';
+        if (showOnlyEconomy && !isEconomyLog(String((l as any).message || ''), (l as any).type)) return false;
         
         if (!matchesPrimaryFilter(filter, l)) return false;
         
-        if (domainFilter !== 'ALL' && l.domain !== domainFilter.toLowerCase()) return false;
+        if (domainFilter !== 'ALL' && String((l as any).domain || '') !== String(domainFilter)) return false;
         
         if (actionKeyFilter !== 'ALL' && l.actionKey !== actionKeyFilter) return false;
 
@@ -134,6 +150,8 @@ export const TerminalLog = () => {
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
                         showOnlyEconomy={showOnlyEconomy}
+                        filteredLogsCount={filteredLogs.length}
+                        totalLogsCount={state?.logs?.length || 0}
                         updateTerminalPreferences={updateTerminalPreferences}
                         saveLogs={saveLogs}
                         autoScroll={autoScroll}
@@ -158,11 +176,9 @@ export const TerminalLog = () => {
                                     />
                                     <div className="flex-1 flex flex-col min-w-0">
                                         <TerminalFiltersBar 
-                                            filteredLogsCount={filteredLogs.length}
-                                            totalLogsCount={state?.logs?.length || 0}
                                             actionKeyFilter={actionKeyFilter}
                                             updateTerminalPreferences={updateTerminalPreferences}
-                                            actionFilterGroups={Object.entries(knownActionGroups).map(([domain, actions]) => ({ domain, actions }))}
+                                            actionFilterGroups={actionFilterGroups}
                                             domainFilter={domainFilter}
                                             isDark={isDark}
                                         />
