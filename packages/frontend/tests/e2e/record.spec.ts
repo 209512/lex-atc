@@ -184,7 +184,9 @@ const zoomOutRadar = async (page: any) => {
   }
 };
 
-test.describe('Lex-ATC Demo Scenarios', () => {
+const shouldRunDemo = process.env.E2E_DEMO === 'true' || process.env.RECORD_VIDEO === 'true';
+
+(shouldRunDemo ? test.describe : test.describe.skip)('Lex-ATC Demo Scenarios', () => {
   test.describe.configure({ mode: 'serial' });
   
   test.beforeAll(async ({ browser }) => {
