@@ -30,6 +30,7 @@ export default defineConfig({
           args: [
             // Do not disable GPU to ensure WebGL is rendered
             '--no-sandbox',
+            '--disable-dev-shm-usage',
           ],
         },
       },
@@ -42,7 +43,7 @@ export default defineConfig({
         baseURL: process.env.VITE_BACKEND_APP_URL || 'http://127.0.0.1:5181',
         viewport: { width: 1920, height: 1080 },
         launchOptions: {
-          args: ['--no-sandbox'],
+          args: ['--no-sandbox', '--disable-dev-shm-usage'],
         },
       },
       testMatch: ['**/backend-mode.spec.ts'],
