@@ -94,13 +94,16 @@ jobs:
 
   frontend-e2e:
     name: Frontend E2E (Playwright)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    container: mcr.microsoft.com/playwright:v1.40.0-jammy
     needs: changes
     if: |
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.workflows == 'true' ||
       needs.changes.outputs.shared == 'true' ||
       needs.changes.outputs.frontend == 'true'
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -124,9 +127,6 @@ jobs:
 
       - name: Build Shared
         run: pnpm --filter @lex-atc/shared build
-
-      - name: Install Playwright Browsers
-        run: pnpm --filter frontend exec playwright install --with-deps chromium
 
       - name: Run Playwright
         run: pnpm --filter frontend exec playwright test --project=chromium
