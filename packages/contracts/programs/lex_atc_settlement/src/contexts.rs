@@ -23,6 +23,7 @@ pub struct DepositEscrow<'info> {
     pub channel: Account<'info, StateChannel>,
     #[account(mut)]
     pub authority: Signer<'info>,
+    /// CHECK: Used only as a public key in PDA derivation; the program does not read/modify treasury account data.
     pub treasury: UncheckedAccount<'info>,
     #[account(mut)]
     pub agent_token_account: Account<'info, TokenAccount>,
@@ -46,6 +47,7 @@ pub struct SubmitSnapshot<'info> {
     pub channel: Account<'info, StateChannel>,
     #[account(mut)]
     pub authority: Signer<'info>,
+    /// CHECK: Used only as a public key in PDA derivation; the program does not read/modify treasury account data.
     pub treasury: UncheckedAccount<'info>,
     #[account(address = IX_ID)]
     /// CHECK: This is the Instructions sysvar; Anchor cannot type-check it beyond the fixed sysvar address constraint.
@@ -63,6 +65,7 @@ pub struct OpenDispute<'info> {
     pub channel: Account<'info, StateChannel>,
     #[account(mut)]
     pub authority: Signer<'info>,
+    /// CHECK: Used only as a public key in PDA derivation; the program does not read/modify treasury account data.
     pub treasury: UncheckedAccount<'info>,
 }
 
