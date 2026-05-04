@@ -77,6 +77,7 @@ pub struct Slash<'info> {
         bump = channel.bump
     )]
     pub channel: Account<'info, StateChannel>,
+    /// CHECK: This is used only as a public key in PDA derivation (authority.key()) and is not required to sign for this instruction.
     pub authority: UncheckedAccount<'info>,
     #[account(mut)]
     pub treasury: Signer<'info>,
