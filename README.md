@@ -30,13 +30,33 @@ Background: [docs/motivation.md](./docs/motivation.md)
 | Standalone (MSW Simulation) | Demo / simulation | No | MSW + simulated events in the browser. Not 1:1 with production latency/auth/failure |
 | Backend Mode | Real runtime | Yes | Uses real API/SSE. Suitable for production-like verification |
 
+## Architecture
+
+```mermaid
+flowchart LR
+  UI[Frontend UI] -->|REST /api| API[Backend API]
+  UI -->|SSE /api/stream| API
+  API --> GOV[Governance]
+  GOV --> ISO[Isolation/Sandbox]
+  GOV --> SET[Settlement/Dispute]
+  API --> DB[(DB/Events)]
+  API --> REDIS[(Redis Pub/Sub - optional/HA)]
+```
+
+| Area | Where | Notes |
+| --- | --- | --- |
+| UI | `packages/frontend` | Monitoring/ops UI, MSW standalone simulation |
+| Backend | `packages/backend` | API/SSE + runtime (agents/governance/isolation/settlement) |
+| Shared | `packages/shared` | Shared schemas/types/contracts for API/SSE |
+| Full doc | [docs/architecture.md](./docs/architecture.md) | Mode flows and operational request flow |
+
 ## Quick Start
 
 ### 1) Standalone (Frontend Only)
 
 ```bash
 pnpm install
-VITE_ENABLE_MSW=true VITE_API_URL=/api pnpm -C packages/frontend dev
+pnpm dev:standalone
 ```
 
 Vercel production env:
@@ -50,8 +70,7 @@ Standalone mode requires Service Worker. If SW is blocked, it cannot function.
 
 ```bash
 pnpm install
-ADMIN_AUTH_DISABLED=true INIT_AGENTS=2 pnpm -C packages/backend dev
-VITE_ENABLE_MSW=false VITE_API_URL=http://127.0.0.1:3000/api pnpm -C packages/frontend dev
+pnpm dev:backend
 ```
 
 ## Determinism (Local)
@@ -59,7 +78,7 @@ VITE_ENABLE_MSW=false VITE_API_URL=http://127.0.0.1:3000/api pnpm -C packages/fr
 To keep wallets stable across restarts:
 
 - set `AGENT_KEY_SEED` and `TREASURY_KEY_SEED`, or
-- set `ALLOW_DEV_SEED_FALLBACK=true`
+- set `ALLOW_DEV_SEED_FALLBACK=true` (development default is true; set `ALLOW_DEV_SEED_FALLBACK=false` to force ephemeral seeds)
 
 ## Utility/Entropy Scheduling (R&D)
 

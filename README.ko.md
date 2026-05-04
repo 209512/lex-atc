@@ -28,13 +28,33 @@ lex-atc는 이 문제를 “관리자 재량”만으로 끝내지 않고, **검
 | Standalone (MSW Simulation) | 데모/시뮬레이션 | 불필요 | 브라우저 내 MSW + 시뮬레이션 이벤트. 운영 현실(권한/지연/실패)은 1:1 재현되지 않음 |
 | Backend Mode | 실제 서버 기반 | 필요 | 실제 API/SSE 흐름. 운영 실패/권한/지연을 재현 가능 |
 
+## 아키텍처
+
+```mermaid
+flowchart LR
+  UI[Frontend UI] -->|REST /api| API[Backend API]
+  UI -->|SSE /api/stream| API
+  API --> GOV[Governance]
+  GOV --> ISO[Isolation/Sandbox]
+  GOV --> SET[Settlement/Dispute]
+  API --> DB[(DB/Events)]
+  API --> REDIS[(Redis Pub/Sub - 옵션/HA)]
+```
+
+| 영역 | 위치 | 설명 |
+| --- | --- | --- |
+| UI | `packages/frontend` | 모니터링/운영 UI, MSW 기반 Standalone 시뮬레이션 |
+| Backend | `packages/backend` | API/SSE + 런타임(agents/governance/isolation/settlement) |
+| Shared | `packages/shared` | 공용 스키마/타입/계약 |
+| 상세 문서 | [docs/architecture.md](./docs/architecture.md) | 모드별 흐름/운영 요청 흐름 |
+
 ## 빠른 시작
 
 ### 1) Standalone (프론트만)
 
 ```bash
 pnpm install
-VITE_ENABLE_MSW=true VITE_API_URL=/api pnpm -C packages/frontend dev
+pnpm dev:standalone
 ```
 
 Vercel 프로덕션 환경변수:
@@ -46,9 +66,15 @@ Vercel 프로덕션 환경변수:
 
 ```bash
 pnpm install
-ADMIN_AUTH_DISABLED=true INIT_AGENTS=2 pnpm -C packages/backend dev
-VITE_ENABLE_MSW=false VITE_API_URL=http://127.0.0.1:3000/api pnpm -C packages/frontend dev
+pnpm dev:backend
 ```
+
+## 결정성 (로컬)
+
+재시작 후에도 지갑/상태를 동일하게 유지하려면:
+
+- `AGENT_KEY_SEED`, `TREASURY_KEY_SEED`를 명시하거나
+- `ALLOW_DEV_SEED_FALLBACK=true`를 설정 (development 기본값은 true, 끄려면 `ALLOW_DEV_SEED_FALLBACK=false`)
 
 ## 연구 가설 (Entropy)
 
