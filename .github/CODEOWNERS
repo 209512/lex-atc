@@ -1,0 +1,7 @@
+/.github/workflows/ @209512
+/scripts/release-check.js @209512
+/scripts/check-command-specs.js @209512
+/scripts/check-workflow-secrets.js @209512
+/scripts/export-release-env-json.js @209512
+/packages/backend/scripts/validate-prod-env.js @209512
+/docs/ops/ @209512

@@ -1,0 +1,17 @@
+{
+  "name": "lex-atc",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "postCreateCommand": "pnpm -w install && pnpm rebuild bigint-buffer",
+  "remoteUser": "node"
+}
+
