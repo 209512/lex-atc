@@ -6,7 +6,7 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "rm -rf dist && tsc",
+    "build": "node scripts/build.js",
     "dev": "tsc -w",
     "typecheck": "tsc --noEmit",
     "test": "node -e \"process.exit(0)\""

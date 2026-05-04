@@ -19,6 +19,7 @@ export const LOG_STAGES = {
 
 // Action keys for consistent filtering
 export const LOG_ACTIONS = {
+  LOG: 'LOG',
   // System
   TOGGLE_STOP: 'TOGGLE_STOP',
   OVERRIDE: 'OVERRIDE',
@@ -75,3 +76,16 @@ export const createLogMeta = (
   actionKey,
   stage
 });
+
+export const normalizeLogMeta = (meta: any = {}) => {
+  const raw = meta || {};
+  const domainRaw = typeof raw.domain === 'string' ? raw.domain.toLowerCase() : LOG_DOMAINS.SYSTEM;
+  const stageRaw = typeof raw.stage === 'string' ? raw.stage.toLowerCase() : LOG_STAGES.EXECUTED;
+  const actionRaw = typeof raw.actionKey === 'string' ? raw.actionKey.toUpperCase() : LOG_ACTIONS.LOG;
+
+  const domain = Object.values(LOG_DOMAINS).includes(domainRaw) ? domainRaw : LOG_DOMAINS.SYSTEM;
+  const stage = Object.values(LOG_STAGES).includes(stageRaw) ? stageRaw : LOG_STAGES.EXECUTED;
+  const actionKey = Object.values(LOG_ACTIONS).includes(actionRaw) ? actionRaw : LOG_ACTIONS.LOG;
+
+  return { ...raw, domain, stage, actionKey };
+};
