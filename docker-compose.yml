@@ -167,6 +167,9 @@ services:
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=false
       - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - LOCK_OCCUPANCY_ALERT_MS=${LOCK_OCCUPANCY_ALERT_MS:-15000}
+      - SANDBOX_FORBIDDEN_SPIKE_WINDOW=${SANDBOX_FORBIDDEN_SPIKE_WINDOW:-5m}
+      - SANDBOX_FORBIDDEN_SPIKE_THRESHOLD=${SANDBOX_FORBIDDEN_SPIKE_THRESHOLD:-20}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

@@ -143,6 +143,117 @@
         "overrides": []
       }
     }
+    ,
+    {
+      "datasource": "Prometheus",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "increase(lex_atc_sandbox_policy_denials_total[5m])",
+          "legendFormat": "{{reason}} / {{command_key}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Sandbox Policy Denials (increase/5m)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "increase(lex_atc_settlement_contract_failures_total[5m])",
+          "legendFormat": "{{op}} / {{reason}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Settlement Contract Failures (increase/5m)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "increase(lex_atc_sandbox_policy_denials_total{reason=\"SANDBOX_FORBIDDEN\"}[1m])",
+          "legendFormat": "forbidden / 1m",
+          "refId": "A"
+        },
+        {
+          "expr": "increase(lex_atc_sandbox_policy_denials_total{reason=\"SANDBOX_FORBIDDEN\"}[5m])",
+          "legendFormat": "forbidden / 5m",
+          "refId": "B"
+        },
+        {
+          "expr": "increase(lex_atc_sandbox_policy_denials_total{reason=\"SANDBOX_FORBIDDEN\"}[15m])",
+          "legendFormat": "forbidden / 15m",
+          "refId": "C"
+        }
+      ],
+      "title": "Sandbox Forbidden Denials (increase windows)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "increase(lex_atc_sandbox_policy_denials_total{reason!~\"SANDBOX_FORBIDDEN|SANDBOX_NOT_FINALIZED\"}[5m])",
+          "legendFormat": "{{reason}} / {{command_key}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Sandbox Non-benign Denials (increase/5m)",
+      "type": "timeseries"
+    }
   ],
   "refresh": "5s",
   "schemaVersion": 38,
@@ -172,5 +283,5 @@
   "timezone": "",
   "title": "Lex ATC Operations & Security Dashboard",
   "uid": "lex-atc-dashboard",
-  "version": 2
+  "version": 4
 }
