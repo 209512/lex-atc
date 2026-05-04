@@ -1,0 +1,2 @@
+pub const DISPUTE_WINDOW_SECONDS: i64 = 60;
+

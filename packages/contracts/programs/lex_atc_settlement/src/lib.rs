@@ -1,13 +1,24 @@
+#![allow(unexpected_cfgs)]
+
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
-use anchor_lang::solana_program::instruction::Instruction;
+use anchor_spl::token::{self, Transfer};
 use anchor_lang::solana_program::sysvar::instructions::{
-    load_current_index_checked, load_instruction_at_checked, ID as IX_ID,
+    load_current_index_checked, load_instruction_at_checked,
 };
 
 declare_id!("1exAtcSett1ementProgram11111111111111111111");
 
-const DISPUTE_WINDOW_SECONDS: i64 = 60;
+mod contexts;
+mod constants;
+mod ed25519;
+mod errors;
+mod state;
+
+use contexts::*;
+use constants::DISPUTE_WINDOW_SECONDS;
+use ed25519::parse_ed25519_ix;
+use errors::CustomError;
+use state::ChannelStatus;
 
 #[program]
 pub mod lex_atc_settlement {
@@ -22,7 +33,8 @@ pub mod lex_atc_settlement {
     /// to locate the required Ed25519 signatures.
     /// 
     /// Both instructions must verify a message that exactly matches the `state_hash` argument.
-    /// One signature must belong to the Agent (`authority`), and the other must belong to the `treasury_pubkey`.
+    /// One signature must belong to the Agent (`authority`).
+    /// The other must belong to the `treasury_pubkey`.
     /// The Solana runtime ensures that if any Ed25519 instruction fails, the entire transaction 
     /// is aborted. This program enforces the presence and data validity (pubkey/message match)
     /// of these instructions to guarantee that the snapshot was mutually agreed upon.
@@ -198,203 +210,4 @@ pub mod lex_atc_settlement {
         msg!("Channel slashed: {}", reason);
         Ok(())
     }
-}
-
-fn parse_ed25519_ix(ix: &Instruction) -> Result<(Pubkey, Vec<u8>)> {
-    require_keys_eq!(
-        ix.program_id,
-        anchor_lang::solana_program::ed25519_program::ID,
-        CustomError::InvalidEd25519Program
-    );
-
-    let data = ix.data.as_slice();
-    require!(data.len() >= 2, CustomError::InvalidEd25519Data);
-
-    let sig_count = data[0] as usize;
-    require!(sig_count == 1, CustomError::InvalidEd25519Data);
-
-    let offsets_base = 2usize;
-    let offsets_len = 14usize;
-    require!(
-        data.len() >= offsets_base + offsets_len,
-        CustomError::InvalidEd25519Data
-    );
-
-    let read_u16 = |idx: usize| -> Result<u16> {
-        require!(idx + 2 <= data.len(), CustomError::InvalidEd25519Data);
-        Ok(u16::from_le_bytes([data[idx], data[idx + 1]]))
-    };
-
-    let signature_offset = read_u16(offsets_base + 0)? as usize;
-    let signature_ix_index = read_u16(offsets_base + 2)?;
-    let public_key_offset = read_u16(offsets_base + 4)? as usize;
-    let public_key_ix_index = read_u16(offsets_base + 6)?;
-    let message_data_offset = read_u16(offsets_base + 8)? as usize;
-    let message_data_size = read_u16(offsets_base + 10)? as usize;
-    let message_ix_index = read_u16(offsets_base + 12)?;
-
-    require!(signature_ix_index == u16::MAX, CustomError::InvalidEd25519Data);
-    require!(public_key_ix_index == u16::MAX, CustomError::InvalidEd25519Data);
-    require!(message_ix_index == u16::MAX, CustomError::InvalidEd25519Data);
-    require!(message_data_size == 32, CustomError::InvalidEd25519Data);
-
-    require!(
-        signature_offset + 64 <= data.len(),
-        CustomError::InvalidEd25519Data
-    );
-    require!(
-        public_key_offset + 32 <= data.len(),
-        CustomError::InvalidEd25519Data
-    );
-    require!(
-        message_data_offset + message_data_size <= data.len(),
-        CustomError::InvalidEd25519Data
-    );
-
-    let pubkey_bytes = &data[public_key_offset..public_key_offset + 32];
-    let pubkey = Pubkey::new_from_array(
-        pubkey_bytes
-            .try_into()
-            .map_err(|_| error!(CustomError::InvalidEd25519Data))?,
-    );
-
-    let message = data[message_data_offset..message_data_offset + message_data_size].to_vec();
-    Ok((pubkey, message))
-}
-
-#[derive(Accounts)]
-pub struct VerifyZkProof<'info> {
-    pub authority: Signer<'info>,
-    #[account(address = IX_ID)]
-    /// CHECK: Instructions sysvar account is used to verify ed25519 signature
-    pub ix_sysvar: AccountInfo<'info>,
-}
-
-#[derive(Accounts)]
-pub struct DepositEscrow<'info> {
-    #[account(
-        mut,
-        seeds = [b"channel", authority.key().as_ref(), treasury.key().as_ref()],
-        bump = channel.bump
-    )]
-    pub channel: Account<'info, StateChannel>,
-    #[account(mut)]
-    pub authority: Signer<'info>,
-    /// CHECK: used as seed identity
-    pub treasury: UncheckedAccount<'info>,
-    #[account(mut)]
-    pub agent_token_account: Account<'info, TokenAccount>,
-    #[account(
-        mut,
-        constraint = escrow_token_account.owner == channel.key() @ CustomError::InvalidEscrowOwner
-    )]
-    pub escrow_token_account: Account<'info, TokenAccount>,
-    pub token_program: Program<'info, Token>,
-}
-
-#[derive(Accounts)]
-pub struct SubmitSnapshot<'info> {
-    #[account(
-        init_if_needed,
-        payer = authority,
-        space = 8 + 8 + 32 + 1 + 8 + 32 + 8 + 8 + 8 + 1,
-        seeds = [b"channel", authority.key().as_ref(), treasury.key().as_ref()],
-        bump
-    )]
-    pub channel: Account<'info, StateChannel>,
-    #[account(mut)]
-    pub authority: Signer<'info>,
-    /// CHECK: used as seed and signature identity
-    pub treasury: UncheckedAccount<'info>,
-    #[account(address = IX_ID)]
-    /// CHECK: Instructions sysvar account is used to verify ed25519 signature
-    pub ix_sysvar: AccountInfo<'info>,
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct OpenDispute<'info> {
-    #[account(
-        mut,
-        seeds = [b"channel", authority.key().as_ref(), treasury.key().as_ref()],
-        bump
-    )]
-    pub channel: Account<'info, StateChannel>,
-    #[account(mut)]
-    pub authority: Signer<'info>,
-    /// CHECK: used as seed identity
-    pub treasury: UncheckedAccount<'info>,
-}
-
-#[derive(Accounts)]
-pub struct Slash<'info> {
-    #[account(
-        mut,
-        seeds = [b"channel", authority.key().as_ref(), treasury.key().as_ref()],
-        bump = channel.bump
-    )]
-    pub channel: Account<'info, StateChannel>,
-    /// CHECK: used as seed identity
-    pub authority: UncheckedAccount<'info>,
-    #[account(mut)]
-    pub treasury: Signer<'info>,
-    #[account(
-        mut,
-        constraint = escrow_token_account.owner == channel.key() @ CustomError::InvalidEscrowOwner
-    )]
-    pub escrow_token_account: Account<'info, TokenAccount>,
-    #[account(mut)]
-    pub treasury_token_account: Account<'info, TokenAccount>,
-    pub token_program: Program<'info, Token>,
-}
-
-#[account]
-pub struct StateChannel {
-    pub last_nonce: u64,
-    pub state_hash: [u8; 32],
-    pub status: ChannelStatus,
-    pub last_updated_at: i64,
-    pub treasury_pubkey: Pubkey,
-    pub dispute_opened_at: i64,
-    pub dispute_target_nonce: u64,
-    pub escrow_balance: u64,
-    pub bump: u8,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
-pub enum ChannelStatus {
-    Active,
-    Disputed,
-    Slashed,
-    Closed,
-}
-
-#[error_code]
-pub enum CustomError {
-    #[msg("The provided nonce is older than or equal to the current channel nonce")]
-    StaleNonce,
-    #[msg("Invalid or missing Ed25519 instruction")]
-    InvalidEd25519Program,
-    #[msg("Missing Ed25519 instructions")]
-    MissingEd25519Instructions,
-    #[msg("Invalid Ed25519 instruction data")]
-    InvalidEd25519Data,
-    #[msg("Invalid state hash")]
-    InvalidStateHash,
-    #[msg("Invalid signers")]
-    InvalidSigners,
-    #[msg("Invalid message")]
-    InvalidMessage,
-    #[msg("Invalid ZK-Proof or missing inputs")]
-    InvalidZkProof,
-    #[msg("Invalid treasury")]
-    InvalidTreasury,
-    #[msg("Invalid status")]
-    InvalidStatus,
-    #[msg("Challenge window still open")]
-    ChallengeWindowOpen,
-    #[msg("Invalid Circuit Version")]
-    InvalidCircuitVersion,
-    #[msg("Invalid Escrow Owner")]
-    InvalidEscrowOwner,
 }
