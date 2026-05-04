@@ -9,6 +9,7 @@ use crate::state::StateChannel;
 pub struct VerifyZkProof<'info> {
     pub authority: Signer<'info>,
     #[account(address = IX_ID)]
+    /// CHECK: This is the Instructions sysvar; Anchor cannot type-check it beyond the fixed sysvar address constraint.
     pub ix_sysvar: AccountInfo<'info>,
 }
 
@@ -47,6 +48,7 @@ pub struct SubmitSnapshot<'info> {
     pub authority: Signer<'info>,
     pub treasury: UncheckedAccount<'info>,
     #[account(address = IX_ID)]
+    /// CHECK: This is the Instructions sysvar; Anchor cannot type-check it beyond the fixed sysvar address constraint.
     pub ix_sysvar: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
@@ -84,4 +86,3 @@ pub struct Slash<'info> {
     pub treasury_token_account: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
 }
-
