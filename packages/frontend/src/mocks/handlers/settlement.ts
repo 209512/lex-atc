@@ -51,7 +51,7 @@ export const settlementHandlers = [
         { error: 'Must provide either channelId or actorUuid' },
         { status: 400 },
       );
-    const effectiveChannelId = body.channelId ?? `channel:${body.actorUuid}`;
+    const effectiveChannelId = body.channelId || `channel:${body.actorUuid}`;
     const now = Date.now();
     const ch = db.settlement.channels.find(c => c.channelId === effectiveChannelId);
     if (ch) {
@@ -97,4 +97,3 @@ export const settlementHandlers = [
     return HttpResponse.json({ success: true, scheduled: true });
   }),
 ];
-

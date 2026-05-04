@@ -103,3 +103,9 @@ body.reduce-motion * {
   display: flex;
   overflow: hidden;
 }
+
+html[data-lex-atc-doc="1"] [data-doc-highlight="1"] {
+  outline: 3px solid rgba(56, 189, 248, 0.95);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px rgba(56, 189, 248, 0.18);
+}

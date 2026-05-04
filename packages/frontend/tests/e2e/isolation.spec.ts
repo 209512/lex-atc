@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForAppMounted, waitForMswReady } from './e2eUtils';
 
 test.describe('Isolation Operations Panel', () => {
   test.beforeEach(async ({ page }) => {
@@ -8,12 +9,9 @@ test.describe('Isolation Operations Panel', () => {
       window.localStorage.setItem('lex-atc.ui-state.v3', JSON.stringify({ state: { sidebarWidth: 450, viewMode: 'detached', areTooltipsEnabled: true, uiPreferences: { sidebar: { sections: { ops: true, overview: false, l4: false, agents: false }, sectionOrder: ['ops'] }, panels: { terminal: { isOpen: true }, queue: { isOpen: true }, tactical: { isOpen: true }, l4: { isOpen: true } }, panelOrder: [], theme: 'dark', viewMode: 'operator', terminal: { filter: 'ALL', domainFilter: 'ALL', actionKeyFilter: 'ALL' }, l4: { rightPanel: 'summary' } } }, version: 0 }));
     });
 
-    const mswReady = page.waitForEvent('console', {
-      predicate: (msg) => msg.text().includes('Mocking enabled.'),
-      timeout: 15000,
-    });
     await page.goto('/', { waitUntil: 'load', timeout: 30000 });
-    await mswReady.catch(() => {});
+    await waitForAppMounted(page);
+    await waitForMswReady(page);
 
     await page.waitForSelector('#root', { state: 'attached', timeout: 30000 });
     await expect(page.locator('#root')).toBeVisible({ timeout: 30000 });

@@ -27,7 +27,11 @@ export const SlashingHeatmap: React.FC<SlashingHeatmapProps> = ({ agentId, metri
   };
 
   return (
-    <div className="w-80 bg-slate-900/95 border border-red-500/30 rounded-lg p-4 shadow-2xl backdrop-blur-md">
+    <div
+      className="w-80 bg-slate-900/95 border border-red-500/30 rounded-lg p-4 shadow-2xl backdrop-blur-md"
+      data-testid="panel-slashing-heatmap"
+      data-doc-label="SLASHING JUSTIFICATION"
+    >
       <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-700">
         <AlertTriangle className="text-red-400 w-5 h-5" />
         <h3 className="font-mono text-sm font-bold text-slate-200 flex-1">SLASHING JUSTIFICATION</h3>

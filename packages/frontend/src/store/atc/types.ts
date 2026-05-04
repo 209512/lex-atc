@@ -41,6 +41,7 @@ export interface ATCCoreActions {
 export interface ATCLockActions {
   markAction: (agentId: string, field: string, value: any, isDelete?: boolean) => void;
   clearDeletedAgent: (agentId: string) => void;
+  pruneLocks: (now?: number) => void;
 }
 
 export interface ATCActionsRegistryActions {
@@ -53,4 +54,3 @@ export type ATCStore = ATCCoreState &
   ATCCoreActions &
   ATCLockActions &
   ATCActionsRegistryActions;
-

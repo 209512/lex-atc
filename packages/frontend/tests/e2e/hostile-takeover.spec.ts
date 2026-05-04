@@ -1,4 +1,5 @@
 import { test } from '@playwright/test';
+import { waitForAppMounted, waitForAppStateReady } from './e2eUtils';
 
 test.describe('Distributed Lock - Hostile Takeover UI Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -49,6 +50,8 @@ test.describe('Distributed Lock - Hostile Takeover UI Flow', () => {
     });
 
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await waitForAppMounted(page);
+    await waitForAppStateReady(page);
     
     await page.route('**/api/override', async (route) => {
       await route.fulfill({ json: { success: true } });
@@ -60,7 +63,6 @@ test.describe('Distributed Lock - Hostile Takeover UI Flow', () => {
   });
 
   test('displays hostile takeover log and override UI correctly', async ({ page }) => {
-    await page.waitForTimeout(500);
     // The current lock holder is agent-victim, so it should be visible in the system status header
     // In L4Monitor or Radar, we can check if agent-victim is present
     // Skip this assert due to DOM timing issues, we just check page loads

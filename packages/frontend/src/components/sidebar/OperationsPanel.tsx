@@ -88,7 +88,7 @@ export const OperationsPanel = () => {
   }, [addLog, playAlert, playClick]);
 
   return (
-    <div data-testid="panel-ops" className="flex flex-col min-w-0">
+    <div data-testid="panel-ops" data-doc-label="OPERATIONS" className="flex flex-col min-w-0">
       <div className="space-y-3">
         <GovernancePanel
           isDark={isDark}

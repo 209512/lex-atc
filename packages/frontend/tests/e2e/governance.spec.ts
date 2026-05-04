@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForAppMounted, waitForMswReady } from './e2eUtils';
 
 test.describe('Governance Operations Panel', () => {
   test.beforeEach(async ({ page }) => {
@@ -8,12 +9,9 @@ test.describe('Governance Operations Panel', () => {
       window.localStorage.setItem('lex-atc.ui-state.v3', JSON.stringify({ state: { sidebarWidth: 450, viewMode: 'detached', uiPreferences: { theme: 'dark', viewMode: 'operator', panels: { terminal: { isOpen: true }, queue: { isOpen: true }, tactical: { isOpen: true }, l4: { isOpen: true } }, panelOrder: [], sidebar: { sections: { ops: true, overview: true, l4: true, agents: true }, sectionOrder: ['overview', 'l4', 'ops', 'agents'] }, terminal: { filter: 'ALL', domainFilter: 'ALL', actionKeyFilter: 'ALL' }, l4: { rightPanel: 'summary' } } }, version: 0 }));
     });
 
-    const mswReady = page.waitForEvent('console', {
-      predicate: (msg) => msg.text().includes('Mocking enabled.'),
-      timeout: 15000,
-    });
     await page.goto('/');
-    await mswReady.catch(() => {});
+    await waitForAppMounted(page);
+    await waitForMswReady(page);
     await expect(page).toHaveTitle(/frontend/i, { timeout: 30000 });
   });
 

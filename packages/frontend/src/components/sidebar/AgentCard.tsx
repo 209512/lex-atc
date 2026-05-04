@@ -144,26 +144,22 @@ const AgentCardComponent = ({
 };
 
 export const AgentCard = memo(AgentCardComponent, (prevProps, nextProps) => {
-    // Return true if passing nextProps to render would return the same result as passing prevProps to render
     if (prevProps.isDark !== nextProps.isDark) return false;
     if (prevProps.isSelected !== nextProps.isSelected) return false;
     if (prevProps.isPrioritySection !== nextProps.isPrioritySection) return false;
     if (prevProps.renamingId !== nextProps.renamingId) return false;
     if (prevProps.newName !== nextProps.newName) return false;
 
-    // Deep compare agent except position
     const pa = prevProps.agent;
     const na = nextProps.agent;
     if (pa.id !== na.id || pa.status !== na.status || pa.resource !== na.resource || pa.activity !== na.activity || pa.model !== na.model || pa.displayName !== na.displayName || pa.displayId !== na.displayId || pa.priority !== na.priority) return false;
 
-    // Check relevant state fields (globalStop, holder, overrideSignal, logs length)
     const ps = prevProps.state;
     const ns = nextProps.state;
     if (ps?.globalStop !== ns?.globalStop) return false;
     if (ps?.holder !== ns?.holder) return false;
     if (ps?.overrideSignal !== ns?.overrideSignal) return false;
     
-    // Only re-render if logs length changed when selected
     if (prevProps.isSelected && (ps?.logs?.length !== ns?.logs?.length)) return false;
 
     return true;

@@ -35,9 +35,6 @@ export const OperationsActionModal = () => {
     playClick();
     try {
       if (['slash', 'dispute'].includes(operationsActionType)) {
-        // Settlement Actions
-        // Note: For settlement actions triggered from agent cards, operationsTargetId is the agentId.
-        // We might not know the channelId directly here, but the backend accepts empty channelId if actorUuid is provided.
         const channelId = ''; 
         if (operationsActionType === 'slash') {
            await atcApi.slashSettlement(channelId, operationsTargetId, reason);
@@ -48,7 +45,6 @@ export const OperationsActionModal = () => {
            addLog(`DISPUTE_OPENED for ${operationsTargetId}`, 'warn', 'SYSTEM');
         }
       } else {
-        // Governance Actions
         let action = operationsActionType.toUpperCase();
         const params = { targetId: operationsTargetId };
         

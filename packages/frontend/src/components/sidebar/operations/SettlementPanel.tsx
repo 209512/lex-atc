@@ -30,7 +30,7 @@ export const SettlementPanel: React.FC<CommonPanelProps & { collapsed?: boolean;
   }, []);
 
   return (
-    <section data-testid="ops-settlement" className={getSectionCardClass(isDark)}>
+    <section data-testid="ops-settlement" data-doc-label="Settlement" className={getSectionCardClass(isDark)}>
       <div className="flex items-center justify-between">
         <button
           type="button"

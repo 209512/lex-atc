@@ -7,7 +7,7 @@ import tsPlugin from '@typescript-eslint/eslint-plugin'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage', 'public/mockServiceWorker.js', 'playwright-report', 'test-results']),
+  globalIgnores(['dist', 'coverage', 'public/mockServiceWorker.js', 'playwright-report', 'test-results', 'scripts/**']),
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx,ts,tsx}'], 

@@ -29,7 +29,7 @@ export const IsolationPanel: React.FC<CommonPanelProps & { collapsed?: boolean; 
   }, []);
 
   return (
-    <section data-testid="ops-isolation" className={getSectionCardClass(isDark)}>
+    <section data-testid="ops-isolation" data-doc-label="Isolation" className={getSectionCardClass(isDark)}>
       <div className="flex items-center justify-between">
         <button
           type="button"

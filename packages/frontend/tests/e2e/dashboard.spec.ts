@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForAppMounted } from './e2eUtils';
 
 test('has title and loads dashboard', async ({ page }) => {
   page.on('console', msg => {
@@ -31,6 +32,7 @@ test('has title and loads dashboard', async ({ page }) => {
   });
   
   await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 15000 });
+  await waitForAppMounted(page);
 
   // Expect a title "to contain" a substring.
   await expect(page).toHaveTitle(/frontend/i, { timeout: 15000 });

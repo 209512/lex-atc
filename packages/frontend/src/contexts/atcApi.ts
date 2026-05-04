@@ -11,6 +11,21 @@ interface RequestOptions extends RequestInit {
   backoff?: number;
 }
 
+const getCookieValue = (name: string) => {
+  const raw = typeof document !== 'undefined' ? String(document.cookie || '') : '';
+  if (!raw) return null;
+  const parts = raw.split(';');
+  for (const p of parts) {
+    const idx = p.indexOf('=');
+    if (idx === -1) continue;
+    const k = p.slice(0, idx).trim();
+    if (k !== name) continue;
+    const v = p.slice(idx + 1).trim();
+    try { return decodeURIComponent(v); } catch { return v; }
+  }
+  return null;
+};
+
 const request = async (url: string, options: RequestOptions = {}) => {
   const { 
     timeout = frontendConfig.api.timeoutMs, 
@@ -25,11 +40,14 @@ const request = async (url: string, options: RequestOptions = {}) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
     try {
+      const method = String(fetchOptions.method || 'GET').toUpperCase();
+      const csrfToken = method === 'GET' || method === 'HEAD' || method === 'OPTIONS' ? null : getCookieValue('lex_atc_csrf');
       const response = await fetch(`${getApiBaseUrl()}${url}`, {
         ...fetchOptions,
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
           ...fetchOptions.headers
         },
         signal: controller.signal,

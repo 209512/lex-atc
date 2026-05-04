@@ -4,6 +4,7 @@ This checklist focuses on real user flows and is designed to catch regressions b
 
 ## Prerequisites
 
+- Use a real browser (Chrome/Firefox/Safari) for manual QA. Some embedded WebViews may not behave the same for Service Worker/SSE/canvas.
 - Standalone mode: `VITE_ENABLE_MSW=true`, `VITE_API_URL=/api`
 - Backend mode: `VITE_ENABLE_MSW=false`, `VITE_API_URL=https://<backend-origin>/api`
 - Optional: `VITE_DEPLOYMENT_STRICT=true` to fail fast on invalid env combinations
@@ -41,4 +42,3 @@ This checklist focuses on real user flows and is designed to catch regressions b
 
 - If `VITE_DEPLOYMENT_STRICT=true` and configuration is invalid:
   - The app should stop booting and show the configuration error screen.
-

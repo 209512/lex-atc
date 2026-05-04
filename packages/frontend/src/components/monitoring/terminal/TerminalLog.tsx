@@ -139,6 +139,7 @@ export const TerminalLog = () => {
             <div 
                 ref={nodeRef}
                 data-testid="panel-terminal"
+                data-doc-label="TERMINAL"
                 className="tour-step-terminal fixed flex flex-col items-end font-mono transition-colors duration-300 ease-out pointer-events-auto" 
                 style={{ left: 0, top: 0, zIndex }}
             >

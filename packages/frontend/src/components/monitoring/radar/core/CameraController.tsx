@@ -1,5 +1,4 @@
 import { useShallow } from 'zustand/react/shallow';
-// src/components/monitoring/radar/CameraController.tsx
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useRef, useEffect } from 'react';
@@ -36,7 +35,6 @@ export const CameraController = ({ targetPosition, targetAgent }: Props) => {
 
         const handleStart = () => { 
             isUserInteracting.current = true; 
-            // 사용자가 수동 조작을 시작하면 자동 줌 모드 해제
             isAutoZooming.current = false;
             shouldReset.current = false;
         };
@@ -72,7 +70,6 @@ export const CameraController = ({ targetPosition, targetAgent }: Props) => {
         if (!controls) return;
         const orbit = controls as any;
 
-        // 사용자가 우클릭으로 화면을 옮기거나 회전 중일 때는 카메라 타겟을 강제로 고정하지 않음
         if (isUserInteracting.current) return;
 
         const agentPaused = String((targetAgent as any)?.status || '').toLowerCase() === 'paused' || (targetAgent as any)?.isPaused === true;
@@ -129,3 +126,4 @@ export const CameraController = ({ targetPosition, targetAgent }: Props) => {
 
     return null;
 };
+

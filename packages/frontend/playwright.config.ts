@@ -53,13 +53,13 @@ export default defineConfig({
     {
       command: `${webServerEnv} pnpm --filter @lex-atc/shared build && ${webServerEnv} pnpm --filter frontend build && ${webServerEnv} pnpm --filter frontend preview --port 5180 --strictPort`,
       url: process.env.VITE_APP_URL || 'http://127.0.0.1:5180',
-      reuseExistingServer: true,
+      reuseExistingServer: !process.env.CI,
       timeout: 120000,
     },
     {
       command: 'VITE_ENABLE_MSW=false VITE_API_URL=http://127.0.0.1:3000/api pnpm --filter frontend dev --host 127.0.0.1 --port 5181 --strictPort',
       url: process.env.VITE_BACKEND_APP_URL || 'http://127.0.0.1:5181',
-      reuseExistingServer: true,
+      reuseExistingServer: !process.env.CI,
       timeout: 120000,
     },
   ],

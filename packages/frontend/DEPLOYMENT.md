@@ -33,6 +33,18 @@ Treat these as a pair:
 - Standalone: `VITE_ENABLE_MSW=true` with local `/api`
 - Backend: `VITE_ENABLE_MSW=false` with remote `https://.../api`
 
+For local development, prefer the repo scripts:
+
+- `pnpm dev:standalone`
+- `pnpm dev:backend`
+
+### Local env files (recommended)
+
+Use `.env.local` for machine-specific settings (do not commit it).
+
+- Standalone: copy `.env.standalone.example` → `.env.local`
+- Backend: copy `.env.backend.example` → `.env.local`
+
 ## Vercel checklist (Preview / Production)
 
 ### 1) Decide what each environment represents
@@ -93,4 +105,3 @@ Known warning codes:
 - `API_URL_SHOULD_END_WITH_/api`
 - `STANDALONE_MODE_WITH_REMOTE_API_URL`
 - `UNKNOWN_FATAL_WARNING_CODE` (VITE_DEPLOYMENT_STRICT=true 이면서 VITE_DEPLOYMENT_FATAL_WARNINGS에 알 수 없는 코드가 포함됨)
-
