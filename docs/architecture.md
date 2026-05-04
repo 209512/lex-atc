@@ -58,7 +58,7 @@ sequenceDiagram
 
 ```mermaid
 graph TD
-    subgraph L4 [L4 Monitoring · React 18 + React Router + Context]
+    subgraph L4["L4 Monitoring · React 18 + React Router + Context"]
         UI[Sidebar / Tactical Panels]
         HUD[2D RadarLite / Floating Windows]
         Analytics[Terminal Analytics / Event Logs]
@@ -68,7 +68,7 @@ graph TD
         Analytics --> Store
     end
 
-    subgraph L1 [L1 Execution · Hazelcast CP + Sharded Sequencer]
+    subgraph L1["L1 Execution · Hazelcast CP + Sharded Sequencer"]
         HZ[Hazelcast CP Subsystem]
         FS[FencedLock]
         SS[Sharded Sequencer]
@@ -76,7 +76,7 @@ graph TD
         LD[LockDirector]
     end
 
-    subgraph Runtime [Autonomous Runtime · Node.js]
+    subgraph Runtime["Autonomous Runtime · Node.js"]
         API[ATC Service / Express API]
         AM[AgentManager]
         AG[Autonomous Agents]
@@ -85,13 +85,13 @@ graph TD
         TR[Treasury]
     end
 
-    subgraph L2 [L2 History · PostgreSQL]
+    subgraph L2["L2 History · PostgreSQL"]
         DB[(Event Logs / Snapshots / Channel State)]
         REDIS[(Redis Pub/Sub - optional/HA)]
     end
 
-    subgraph L3 [L3 Settlement · Runtime + Anchor]
-        SET[Settlement Engine (on-chain optional)]
+    subgraph L3["L3 Settlement · Runtime + Anchor"]
+        SET["Settlement Engine (on-chain optional)"]
         ML[AI Watcher API (optional)]
         CH[Channel Snapshots / Signatures (optional)]
     end
