@@ -86,6 +86,14 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
+      - name: Check Workflow Secrets Allowlist
+        run: node scripts/check-workflow-secrets.js
+
+      - name: Install Build Tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends python3 make g++
+
       - name: Install
         run: pnpm install --frozen-lockfile
 
@@ -121,6 +129,11 @@ jobs:
           node-version: 22
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install Build Tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends python3 make g++
 
       - name: Install
         run: pnpm install --frozen-lockfile
