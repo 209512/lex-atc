@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { checkWorkflowSecretsMarkdown } = require('./workflow-secrets-doc');
 
 const repoRoot = path.resolve(__dirname, '..');
 
@@ -70,4 +71,5 @@ if (allProblems.length) {
 }
 
 process.stdout.write(`doc-links: ok (${files.length} files)\n`);
+checkWorkflowSecretsMarkdown();
 process.exit(0);
