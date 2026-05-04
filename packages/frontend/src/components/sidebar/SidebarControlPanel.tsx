@@ -1,4 +1,3 @@
-// src/components/sidebar/SidebarControlPanel.tsx
 import { useShallow } from 'zustand/react/shallow';
 import React from 'react';
 import clsx from 'clsx';
@@ -68,7 +67,6 @@ export const SidebarControlPanel = () => {
                 <ChevronRight size={16} className="opacity-80" />
             </button>
         
-            {/* AUDIO CONTROL */}
             <div className="flex flex-col gap-1 min-w-0">
                 <Tooltip content={isAdminMuted ? "Unmute All" : "Mute All"} position="bottom">
                     <button 
@@ -86,7 +84,6 @@ export const SidebarControlPanel = () => {
                 </Tooltip>
             </div>
 
-            {/* VIEW MODE TOGGLE */}
             <div className="flex flex-col gap-1 min-w-0">
                 <Tooltip content="Switch View Mode" position="bottom-left">
                     <button 
@@ -111,12 +108,12 @@ export const SidebarControlPanel = () => {
                 </Tooltip>
             </div>
 
-            {/* OVERRIDE CONTROL */}
             <div className="flex items-center h-full min-w-0 flex-1 tour-step-emergency">
                 {isHuman ? (
                     <button 
                         onClick={handleRelease} 
                         data-testid="btn-release-lock"
+                        data-doc-label="Release Lock"
                         className="h-[60px] w-full rounded bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-[10px] flex flex-col items-center justify-center gap-1 shadow-lg shadow-emerald-900/20 transition-all active:scale-95 uppercase tracking-wider"
                     >
                         <Unlock size={16} className="shrink-0" />
@@ -128,6 +125,7 @@ export const SidebarControlPanel = () => {
                             onClick={handleOverride} 
                             disabled={isOverrideLoading} 
                             data-testid="btn-emergency-takeover"
+                            data-doc-label="Emergency Takeover"
                             className={clsx(
                                 "h-[60px] w-full rounded font-bold text-[10px] flex flex-col items-center justify-center gap-1 shadow-lg transition-all active:scale-95 uppercase tracking-wider",
                                 isOverrideLoading 

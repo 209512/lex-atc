@@ -35,7 +35,6 @@ export const PolicyTemplateModal = ({ isOpen, onClose }: { isOpen: boolean, onCl
         
         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           
-          {/* Strict DeFi */}
           <div 
             onClick={() => applyTemplate('STRICT_DEFI')}
             className="border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 p-5 rounded-lg cursor-pointer transition-all group"
@@ -50,7 +49,6 @@ export const PolicyTemplateModal = ({ isOpen, onClose }: { isOpen: boolean, onCl
             </ul>
           </div>
 
-          {/* High Throughput */}
           <div 
             onClick={() => applyTemplate('HIGH_THROUGHPUT')}
             className="border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 p-5 rounded-lg cursor-pointer transition-all group"
@@ -65,7 +63,6 @@ export const PolicyTemplateModal = ({ isOpen, onClose }: { isOpen: boolean, onCl
             </ul>
           </div>
 
-          {/* Defensive */}
           <div 
             onClick={() => applyTemplate('DEFENSIVE')}
             className="border border-red-500/30 bg-red-500/5 hover:bg-red-500/10 p-5 rounded-lg cursor-pointer transition-all group"

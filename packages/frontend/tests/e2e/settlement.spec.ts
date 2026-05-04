@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForAppMounted, waitForMswReady } from './e2eUtils';
 
 test.describe('Settlement dispute/slash flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -51,13 +52,9 @@ test.describe('Settlement dispute/slash flow', () => {
       );
     });
 
-    const mswReady = page.waitForEvent('console', {
-      predicate: (msg) => msg.text().includes('Mocking enabled.'),
-      timeout: 15000,
-    });
-
     await page.goto('/');
-    await mswReady.catch(() => {});
+    await waitForAppMounted(page);
+    await waitForMswReady(page);
 
     await expect(page.getByTestId('ops-settlement')).toBeVisible({ timeout: 15000 });
     expect(mswUnhandled).toEqual([]);

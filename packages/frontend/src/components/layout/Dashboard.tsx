@@ -1,4 +1,3 @@
-// src/components/layout/Dashboard.tsx
 import { useShallow } from 'zustand/react/shallow';
 import React, { useState, useEffect } from 'react';
 import { ControlTower } from '@/components/layout/ControlTower';
@@ -16,7 +15,7 @@ const RadarLazy = React.lazy(() => import('@/components/monitoring/radar').then(
 
 export const Dashboard = () => {
   const { state, agents } = useATCStore(useShallow(s => ({ state: s.state, agents: s.agents })));
-  const { isDark, viewMode, uiPreferences  } = useUIStore(useShallow(s => ({ isDark: s.isDark, viewMode: s.viewMode, uiPreferences: s.uiPreferences })));
+  const { isDark, viewMode, setViewMode, uiPreferences  } = useUIStore(useShallow(s => ({ isDark: s.isDark, viewMode: s.viewMode, setViewMode: s.setViewMode, uiPreferences: s.uiPreferences })));
   const { setPolicyModalOpen } = useModalStore();
 
   const { viewMode: systemViewMode } = uiPreferences;
@@ -114,7 +113,6 @@ export const Dashboard = () => {
         } as any}
       />
       
-      {/* 상단 시스템 정보 */}
       <div className="absolute top-4 left-6 z-10 pointer-events-none select-none flex flex-col gap-4 items-start">
         <div>
           <h1 className={clsx("text-2xl md:text-4xl font-black tracking-tighter uppercase transition-colors duration-500", 
@@ -132,7 +130,6 @@ export const Dashboard = () => {
           </div>
         </div>
 
-        {/* Quick Policies Button */}
         <button 
           onClick={() => setPolicyModalOpen(true)}
           className={clsx(
@@ -145,7 +142,6 @@ export const Dashboard = () => {
         </button>
       </div>
 
-      {/* 레이더 캔버스 영역 */}
       <div className="flex-1 w-full h-full relative z-[1] tour-step-radar">
         {viewMode === 'detached' && systemViewMode !== 'executive' && (
           <div className={clsx(
@@ -158,7 +154,6 @@ export const Dashboard = () => {
           </div>
         )}
 
-        {/* Executive Mode Placeholder */}
         {systemViewMode === 'executive' && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-md z-10">
             <div className="text-center p-8 rounded-xl border border-gray-800 bg-gray-900/80 shadow-2xl">
@@ -181,7 +176,6 @@ export const Dashboard = () => {
           </div>
         )}
 
-        {/* 대기 모드 오버레이: attached 모드일 때만 활성화 */}
         {viewMode === 'attached' && (
           <div className={clsx(
             "absolute inset-0 flex flex-col items-center justify-center font-mono transition-all duration-500 bg-black/60 backdrop-blur-sm z-20",
@@ -190,12 +184,17 @@ export const Dashboard = () => {
             <div className="flex flex-col items-center gap-4">
               <div className="w-12 h-12 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
               <span className="text-blue-400 font-bold tracking-[0.2em] animate-pulse uppercase">Radar Data Externalized</span>
+              <button
+                onClick={() => setViewMode('detached')}
+                className="pointer-events-auto px-4 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-300 text-[10px] font-mono font-bold tracking-[0.2em] hover:bg-blue-500/20 transition-colors"
+              >
+                OPEN RADAR
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* 전역 HUD (ControlTower contains Sidebar, Terminal, etc.) */}
       <ControlTower />
       <GlobalModals />
     </main>

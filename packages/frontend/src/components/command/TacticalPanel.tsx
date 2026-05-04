@@ -64,6 +64,7 @@ export const TacticalPanel = () => {
         >
             <div ref={nodeRef} 
                 data-testid="panel-tactical"
+                data-doc-label="TACTICAL COMMAND"
                 className={clsx("fixed rounded-xl border shadow-2xl backdrop-blur-md flex flex-col overflow-hidden transition-colors pointer-events-auto", 
                 isDark ? "bg-[#0d1117]/90 border-gray-800 text-gray-300" : "bg-slate-50/80 border-slate-200/40 text-slate-800",
                 isCollapsed ? "!max-h-[40px] !h-10 w-80" : "resize both")}

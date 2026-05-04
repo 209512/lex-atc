@@ -11,6 +11,13 @@ const App = () => {
   const { isDark, uiPreferences, sidebarWidth } = useUIStore(useShallow(s => ({ isDark: s.isDark, uiPreferences: s.uiPreferences, sidebarWidth: s.sidebarWidth })));
 
   React.useEffect(() => {
+    const w = window as any;
+    w.__LEX_ATC__ = w.__LEX_ATC__ || {};
+    w.__LEX_ATC__.app = { ...(w.__LEX_ATC__.app || {}), mounted: true };
+    document.documentElement.dataset.lexAtcMounted = '1';
+  }, []);
+
+  React.useEffect(() => {
     if (uiPreferences.theme === 'high-contrast') {
       document.body.classList.add('high-contrast');
     } else {
@@ -41,8 +48,7 @@ const App = () => {
       <div className="flex-1 min-w-0 min-h-0 h-full relative overflow-hidden">
         <Outlet />
       </div>
-      
-      {/* 사이드바는 HUD보다 낮은 순위 혹은 동일 순위로 설정 (z-50) */}
+
       <div className="tour-step-sidebar h-full flex flex-col relative z-50">
         <SidebarContainer />
       </div>

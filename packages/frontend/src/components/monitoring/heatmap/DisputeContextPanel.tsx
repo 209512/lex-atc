@@ -31,6 +31,8 @@ export const DisputeContextPanel: React.FC<DisputeContextPanelProps> = ({
         'w-80 rounded-lg p-4 shadow-2xl backdrop-blur-md border',
         isDark ? 'bg-slate-900/95 border-amber-500/30' : 'bg-white/95 border-amber-400/40'
       )}
+      data-testid="panel-dispute-context"
+      data-doc-label="DISPUTE CONTEXT"
     >
       <div className={clsx('flex items-center gap-2 mb-3 pb-2 border-b', isDark ? 'border-slate-700' : 'border-slate-200')}>
         <Gavel className={clsx('w-5 h-5', isDark ? 'text-amber-400' : 'text-amber-600')} />
@@ -82,4 +84,3 @@ export const DisputeContextPanel: React.FC<DisputeContextPanelProps> = ({
     </div>
   );
 };
-

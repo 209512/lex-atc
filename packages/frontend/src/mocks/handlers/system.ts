@@ -3,6 +3,8 @@ import { SYSTEM, LOG_DOMAINS, LOG_STAGES, LOG_ACTIONS } from '@lex-atc/shared';
 import { db, broadcast, addLog, setGlobalStop } from '../core/db';
 
 export const systemHandlers = [
+  http.get('/api/__msw/health', () => HttpResponse.json({ ok: true })),
+
   http.post('/api/override', () => {
     db.atcState.overrideSignal = true;
     db.atcState.holder = SYSTEM.ADMIN_HOLDER_ID;

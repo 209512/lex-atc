@@ -1,179 +1,225 @@
 // src/hooks/system/useATCStream.ts
 import { useEffect, useRef, useCallback } from 'react';
-import { Agent } from '@/contexts/atcTypes';
 import { useATCStore } from '@/store/atc';
-import { formatId } from '@/utils/agentIdentity';
 import { frontendConfig } from '@/config/runtime';
-import { getOrbitPosition } from '@/utils/orbit';
+import { SseEventContractSchema } from '@lex-atc/shared';
+import { mapSseAgents, mergeSseState } from './useATCStream.reducers';
 
-const getSpiralPos = (i: number): [number, number, number] => {
-  const r = 2.5 * Math.sqrt(i + 1);
-  const theta = i * 137.508 * (Math.PI / 180);
-  return [Math.cos(theta) * r, 0, Math.sin(theta) * r];
+type SseSingleton = {
+  refCount: number;
+  eventSource: EventSource | null;
+  staleTimer: any;
+  reconnectTimer: any;
+  sessionEnsureInFlight: Promise<boolean> | null;
+  sessionOkUntil: number;
 };
 
-const getOrbitPos = (agent: any, fallbackIndex: number, now: number): [number, number, number] => {
-  const orbit = agent?.orbit;
-  const seed = typeof orbit?.seed === 'number' ? orbit.seed : null;
-  const spawnTime = typeof orbit?.spawnTime === 'number' ? orbit.spawnTime : null;
-  const totalPausedMs = typeof orbit?.totalPausedMs === 'number' ? orbit.totalPausedMs : 0;
-  if (seed === null || spawnTime === null) return getSpiralPos(fallbackIndex);
-  const activeTime = Math.max(0, now - spawnTime - totalPausedMs);
-  return getOrbitPosition(seed, activeTime);
+const getSseSingleton = () => {
+  const w = (typeof window !== 'undefined' ? (window as any) : null);
+  const fallback: SseSingleton = {
+    refCount: 0,
+    eventSource: null,
+    staleTimer: null,
+    reconnectTimer: null,
+    sessionEnsureInFlight: null,
+    sessionOkUntil: 0,
+  };
+  if (!w) return fallback;
+  const key = '__LEX_ATC_SSE_SINGLETON__';
+  if (!w[key]) {
+    w[key] = fallback;
+  }
+  return w[key] as SseSingleton;
 };
 
 export const useATCStream = () => {
   const setState = useATCStore.getState().setState;
   const setAgents = useATCStore.getState().setAgents;
-  const markActionStore = useATCStore.getState().markAction;
-
-  const deletedIds = useRef<Map<string, number>>(new Map());
-  const fieldLocks = useRef<Map<string, Map<string, { value: any, expiry: number }>>>(new Map());
+  const stateReadyRef = useRef(false);
+  const schemaWarnedRef = useRef(false);
   
-  const reconnectTimeoutRef = useRef<any>(null);
   const dataBuffer = useRef<{ agents: any[] | null, state: any | null }>({ agents: null, state: null });
   const rafRef = useRef<number | null>(null);
 
   const flushBuffer = useCallback(() => {
     const { agents: bufferedAgents, state: bufferedState } = dataBuffer.current;
     const now = Date.now();
+    useATCStore.getState().pruneLocks(now);
+    const { deletedIds, fieldLocks, stateLocks } = useATCStore.getState();
 
     if (bufferedAgents) {
       setAgents((prevAgents) => {
-        const prevMap = new Map(prevAgents.map((a) => [String(a.id), a]));
-        return bufferedAgents.map((agent: any, i: number) => {
-          const originalId = String(agent.id);
-          
-          if (deletedIds.current.has(originalId)) {
-              if (deletedIds.current.get(originalId)! > now) {
-                  return null; // Skip deleted agent to prevent flickering
-              } else {
-                  deletedIds.current.delete(originalId);
-              }
-          }
-
-          const agentLocks = fieldLocks.current.get(originalId);
-          let finalAgent = { ...agent };
-
-          if (agentLocks) {
-            agentLocks.forEach((lock, field) => {
-              if (lock.expiry > now) finalAgent[field] = lock.value;
-              else agentLocks.delete(field);
-            });
-            if (agentLocks.size === 0) fieldLocks.current.delete(originalId);
-          }
-
-          const rawPos = finalAgent.position;
-          const prevAgent = prevMap.get(originalId);
-          const validPosition = (Array.isArray(rawPos) && rawPos.length === 3) 
-            ? (rawPos as [number, number, number]) 
-            : (prevAgent?.position || getOrbitPos(finalAgent, i, now)); 
-
-          return {
-            ...finalAgent,
-            id: originalId,
-            uuid: originalId,
-            displayId: finalAgent.displayName || formatId(originalId),
-            status: String(finalAgent.status || 'idle').toLowerCase() as any,
-            position: validPosition
-          };
-        }).filter(Boolean) as Agent[];
+        return mapSseAgents({ bufferedAgents, prevAgents, now, deletedIds, fieldLocks });
       });
       dataBuffer.current.agents = null;
     }
 
     if (bufferedState) {
       setState((prev) => {
-        const newServerLogs = (bufferedState.logs || []).map((log: any) => ({
-          ...log,
-          agentId: String(log.agentId || 'system'),
-          id: log.id || `S-${log.timestamp}`
-        }));
-
-        const MAX_LOGS = frontendConfig.sse.maxLogs; 
-        
-        const combined = [...prev.logs, ...newServerLogs];
-        const uniqueMap = new Map();
-        combined.forEach(l => uniqueMap.set(l.id, l));
-
-        const sortedLogs = Array.from(uniqueMap.values())
-          .sort((a, b) => Number(a.timestamp) - Number(b.timestamp))
-          .slice(-MAX_LOGS);
-
-        const globalLocks = fieldLocks.current.get('');
-        let finalState = { ...bufferedState };
-        if (globalLocks) {
-          globalLocks.forEach((lock, field) => {
-            if (lock.expiry > now) finalState[field] = lock.value;
-            else globalLocks.delete(field);
-          });
-          if (globalLocks.size === 0) fieldLocks.current.delete('');
-        }
-
-        return { ...prev, ...finalState, logs: sortedLogs };
+        return mergeSseState({
+          prev,
+          bufferedState,
+          now,
+          maxLogs: frontendConfig.sse.maxLogs,
+          stateLocks,
+        });
       });
+      if (!stateReadyRef.current) {
+        stateReadyRef.current = true;
+        try {
+          const w = window as any;
+          w.__LEX_ATC__ = w.__LEX_ATC__ || {};
+          w.__LEX_ATC__.app = { ...(w.__LEX_ATC__.app || {}), stateReady: true };
+          document.documentElement.dataset.lexAtcStateReady = '1';
+        } catch (e) {
+          void e;
+        }
+      }
       dataBuffer.current.state = null;
     }
     rafRef.current = null;
   }, [setAgents, setState]);
 
   useEffect(() => {
-    let eventSource: EventSource | null = null;
+    let disposed = false;
+    const singleton = getSseSingleton();
+    singleton.refCount += 1;
+
+    const closeAll = () => {
+      if (singleton.eventSource) singleton.eventSource.close();
+      singleton.eventSource = null;
+      if (singleton.reconnectTimer) clearTimeout(singleton.reconnectTimer);
+      singleton.reconnectTimer = null;
+      if (singleton.staleTimer) clearInterval(singleton.staleTimer);
+      singleton.staleTimer = null;
+    };
+
     const ensureSession = async () => {
+      if (disposed) return;
+      const now = Date.now();
+      if (now < singleton.sessionOkUntil) return;
       try {
-        await fetch(`${frontendConfig.api.baseUrl}/auth/session`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-        });
-      } catch (err: any) {
-        useATCStore.getState().addLog(`SESSION ENSURE FAILED: ${err.message}`, 'error', 'SYSTEM');
+        if (typeof document !== 'undefined') {
+          const raw = String(document.cookie || '');
+          if (raw.includes('lex_atc_csrf=')) {
+            singleton.sessionOkUntil = Date.now() + Math.max(frontendConfig.sse.reconnectMs * 2, 5000);
+            return;
+          }
+        }
+      } catch {
+        void 0;
       }
+      if (singleton.sessionEnsureInFlight) {
+        await singleton.sessionEnsureInFlight;
+        return;
+      }
+      const doEnsure = async () => {
+        try {
+          if (disposed) return false;
+          const res = await fetch(`${frontendConfig.api.baseUrl}/auth/session`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          if (disposed) return false;
+          if (res.ok) {
+            singleton.sessionOkUntil = Date.now() + Math.max(frontendConfig.sse.reconnectMs * 2, 5000);
+            return true;
+          }
+          singleton.sessionOkUntil = Date.now() + Math.max(frontendConfig.sse.reconnectMs, 2000);
+          return false;
+        } catch (err: any) {
+          if (disposed) return false;
+          if (err?.name === 'AbortError') return false;
+          useATCStore.getState().addLog(`SESSION ENSURE FAILED: ${err.message}`, 'error', 'SYSTEM');
+          singleton.sessionOkUntil = 0;
+          return false;
+        }
+      };
+      const p = doEnsure().finally(() => {
+        if (singleton.sessionEnsureInFlight === p) singleton.sessionEnsureInFlight = null;
+      });
+      singleton.sessionEnsureInFlight = p;
+      await p;
+    };
+
+    const startStaleMonitor = () => {
+      if (singleton.staleTimer) clearInterval(singleton.staleTimer);
+      singleton.staleTimer = setInterval(() => {
+        if (disposed) return;
+        const now = Date.now();
+        setState((prev) => {
+          const sse = prev.sse || {};
+          const connected = sse.connected !== false;
+          const lastMessageAt = typeof sse.lastMessageAt === 'number' ? sse.lastMessageAt : null;
+          const nextStale = Boolean(connected && lastMessageAt && now - lastMessageAt > frontendConfig.sse.staleMs);
+          if (sse.stale === nextStale) return prev;
+          return { ...prev, sse: { ...sse, stale: nextStale } };
+        });
+      }, 1000);
+      if (singleton.staleTimer.unref) singleton.staleTimer.unref();
     };
 
     const connect = async () => {
-      if (eventSource) eventSource.close();
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      if (disposed) return;
+      closeAll();
 
       await ensureSession();
-      eventSource = new EventSource(frontendConfig.sse.streamUrl, { withCredentials: true });
-      eventSource.onmessage = (event) => {
+      if (disposed) return;
+      singleton.eventSource = new EventSource(frontendConfig.sse.streamUrl, { withCredentials: true });
+      singleton.eventSource.onopen = () => {
+        if (disposed) return;
+        setState((prev) => ({
+          ...prev,
+          sse: { ...(prev.sse || {}), connected: true, connectedAt: Date.now(), stale: false }
+        }));
+      };
+      singleton.eventSource.onmessage = (event: MessageEvent<string>) => {
+        if (disposed) return;
         try {
           const data = JSON.parse(event.data);
           if (!data) {
             // Silently ignore empty parsed data
             return;
           }
-          if (data.agents) dataBuffer.current.agents = data.agents;
-          if (data.state) dataBuffer.current.state = data.state;
+          const parsed = SseEventContractSchema.safeParse(data);
+          const payload = parsed.success ? parsed.data : data;
+          if (!parsed.success && !schemaWarnedRef.current) {
+            schemaWarnedRef.current = true;
+            useATCStore.getState().addLog('STREAM_SCHEMA_WARNING', 'warn', 'SYSTEM');
+          }
+          if (payload.agents) dataBuffer.current.agents = payload.agents;
+          if (payload.state) dataBuffer.current.state = payload.state;
           if (!rafRef.current) rafRef.current = requestAnimationFrame(flushBuffer);
-        } catch (err: any) { useATCStore.getState().addLog(`STREAM PARSING ERROR: ${err.message}`, 'error', 'SYSTEM'); }
+        } catch (err: any) {
+          if (disposed) return;
+          useATCStore.getState().addLog(`STREAM PARSING ERROR: ${err.message}`, 'error', 'SYSTEM');
+        }
       };
-      eventSource.onerror = () => {
-        if (eventSource) eventSource.close();
-        reconnectTimeoutRef.current = setTimeout(() => { connect(); }, frontendConfig.sse.reconnectMs);
+      singleton.eventSource.onerror = () => {
+        if (disposed) return;
+        setState((prev) => ({
+          ...prev,
+          sse: { ...(prev.sse || {}), connected: false, lastErrorAt: Date.now(), stale: false }
+        }));
+        if (singleton.eventSource) singleton.eventSource.close();
+        singleton.eventSource = null;
+        if (singleton.reconnectTimer) clearTimeout(singleton.reconnectTimer);
+        singleton.reconnectTimer = setTimeout(() => {
+          if (disposed) return;
+          connect();
+        }, frontendConfig.sse.reconnectMs);
       };
     };
     connect();
+    startStaleMonitor();
     return () => {
-      if (eventSource) eventSource.close();
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      disposed = true;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      singleton.refCount = Math.max(0, singleton.refCount - 1);
+      if (singleton.refCount === 0) closeAll();
     };
-  }, [flushBuffer]);
+  }, [flushBuffer, setState]);
 
-  const markAction = useCallback((agentId: string, field: string, value: any, isDelete: boolean = false) => {
-      markActionStore(agentId, field, value, isDelete);
-      const originalId = String(agentId);
-      if (isDelete) {
-          deletedIds.current.set(originalId, Date.now() + frontendConfig.sse.fieldLockMs);
-          fieldLocks.current.delete(originalId);
-          setState(prev => ({ ...prev, priorityAgents: (prev.priorityAgents || []).filter(id => id !== originalId) }));
-      } else if (field) {
-          if (!fieldLocks.current.has(originalId)) fieldLocks.current.set(originalId, new Map());
-          fieldLocks.current.get(originalId)?.set(field, { value, expiry: Date.now() + frontendConfig.sse.fieldLockMs });
-      }
-  }, [setState, markActionStore]);
-
-  return { markAction };
+  return;
 };

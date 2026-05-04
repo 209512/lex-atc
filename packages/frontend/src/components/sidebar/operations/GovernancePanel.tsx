@@ -85,7 +85,7 @@ export const GovernancePanel: React.FC<CommonPanelProps & { collapsed?: boolean;
   }, [addLog, playAlert, proposalAction, proposalCount, proposalPauseFlag, proposalReason, proposalTargetId, proposalThreshold, proposalTimelockMs, runAction]);
 
   return (
-    <section data-testid="ops-governance" className={getSectionCardClass(isDark)}>
+    <section data-testid="ops-governance" data-doc-label="Governance" className={getSectionCardClass(isDark)}>
       <div className="flex items-center justify-between">
         <button
           type="button"

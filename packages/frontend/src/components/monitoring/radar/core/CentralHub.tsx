@@ -1,4 +1,3 @@
-// src/components/monitoring/radar/CentralHub.tsx
 import React, { useRef, useMemo } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
@@ -62,3 +61,4 @@ export const CentralHub = ({ isLocked, isOverride, holder, isDark, agents }: Cen
         </group>
     );
 };
+

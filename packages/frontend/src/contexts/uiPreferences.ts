@@ -131,7 +131,7 @@ export const loadPersistedUIState = (): Partial<PersistedUIState> => {
   if (!isBrowser()) return {};
 
   try {
-    // Migration: remove old v2 cache to free up space
+    // v2 cache cleanup
     window.localStorage.removeItem('lex-atc.ui-state.v2');
 
     const raw = window.localStorage.getItem(UI_STORAGE_KEY);
@@ -149,9 +149,8 @@ export const persistUIState = (value: PersistedUIState) => {
 
   try {
     const serialized = JSON.stringify(value);
-    // Capacity management: If the state gets unusually large (>50KB), reset only heavy parts like terminal/tactical to defaults
+    // Reset on large state to avoid quota issues
     if (serialized.length > 50000) {
-      // State too large, clearing cache to prevent QuotaExceededError
       const lightweightState = {
         ...value,
         preferences: createDefaultUIPreferences()
@@ -161,7 +160,6 @@ export const persistUIState = (value: PersistedUIState) => {
     }
     window.localStorage.setItem(UI_STORAGE_KEY, serialized);
   } catch (_e) {
-    // Clear storage if quota exceeded
     window.localStorage.removeItem(UI_STORAGE_KEY);
   }
 };

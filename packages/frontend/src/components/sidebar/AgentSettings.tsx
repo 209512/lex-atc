@@ -40,7 +40,6 @@ export const AgentSettings: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4 font-mono">
-                    {/* Tooltip Toggle */}
                     <div className={clsx("p-3 rounded-lg border", isDark ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
                         <label className="flex items-center justify-between cursor-pointer group">
                             <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 opacity-70 group-hover:opacity-100">
@@ -87,7 +86,6 @@ export const AgentSettings: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         </label>
                     </div>
 
-                    {/* Accessibility & Visual Settings */}
                     <div className="grid grid-cols-2 gap-3 mb-4">
                         <div className={clsx("p-3 rounded-lg border", isDark ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
                             <label className="flex items-center justify-between cursor-pointer group">
@@ -114,7 +112,6 @@ export const AgentSettings: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 relative z-50">
-                        {/* Agent Selector */}
                         <div className="space-y-1">
                             <label className="text-[9px] font-bold uppercase opacity-50">Target Agent</label>
                             <button type="button" onClick={() => { setIsAgentOpen(!isAgentOpen); setIsProviderOpen(false); }} 
@@ -134,7 +131,6 @@ export const AgentSettings: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                             )}
                         </div>
 
-                        {/* Provider Selector */}
                         <div className="space-y-1">
                             <label className="text-[9px] font-bold uppercase opacity-50">Provider</label>
                             <button type="button" onClick={() => { setIsProviderOpen(!isProviderOpen); setIsAgentOpen(false); }}

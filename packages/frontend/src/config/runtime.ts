@@ -144,6 +144,10 @@ export const frontendConfig = {
       return env.VITE_SSE_URL ? String(env.VITE_SSE_URL) : `${base}/stream`;
     })(),
     reconnectMs: num(env.VITE_SSE_RECONNECT_MS, 3000),
+    staleMs: (() => {
+      const reconnect = num(env.VITE_SSE_RECONNECT_MS, 3000);
+      return num(env.VITE_SSE_STALE_MS, Math.max(reconnect * 5, 10000));
+    })(),
     maxLogs: num(env.VITE_UI_MAX_LOGS, 2000),
     fieldLockMs: num(env.VITE_UI_FIELD_LOCK_MS, 5000),
     dedupeWindowMs: 1500,

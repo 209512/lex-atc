@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForAppMounted, waitForMswReady } from './e2eUtils';
 
 test('standalone deployment works without backend', async ({ page }) => {
   const mswUnhandled: string[] = [];
@@ -50,13 +51,9 @@ test('standalone deployment works without backend', async ({ page }) => {
     );
   });
 
-  const mswReady = page.waitForEvent('console', {
-    predicate: (msg) => msg.text().includes('Mocking enabled.'),
-    timeout: 15000,
-  });
-
   await page.goto('/');
-  await mswReady.catch(() => {});
+  await waitForAppMounted(page);
+  await waitForMswReady(page);
 
   const sw = await page.request.get('/mockServiceWorker.js');
   expect(sw.ok()).toBeTruthy();

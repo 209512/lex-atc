@@ -1,4 +1,3 @@
-// src/components/sidebar/SidebarHeader.tsx
 import { useShallow } from 'zustand/react/shallow';
 import React from 'react';
 import clsx from 'clsx';
@@ -18,6 +17,8 @@ export const SidebarHeader = ({ onOpenSettings }: { onOpenSettings: () => void }
     const modeLabel = mswFallback ? 'BACKEND (FALLBACK)' : (frontendConfig.deployment.mode === 'standalone' ? 'SIMULATION' : 'BACKEND');
     const isCompact = sidebarWidth > 0 && sidebarWidth < 360;
     const badgeText = isCompact ? (modeLabel.startsWith('SIMULATION') ? 'SIM' : (modeLabel.startsWith('BACKEND') ? 'API' : modeLabel)) : modeLabel;
+    const sseConnected = state?.sse?.connected !== false;
+    const sseStale = Boolean(state?.sse?.stale);
 
     return (
         <div className={clsx(
@@ -31,7 +32,7 @@ export const SidebarHeader = ({ onOpenSettings }: { onOpenSettings: () => void }
                 </div>
                 <div className="min-w-0 flex-1">
                     <Tooltip content="Main Control Panel" position="bottom">
-                        <h2 className="font-bold text-sm tracking-wide min-w-0 flex items-center gap-2" data-testid="traffic-control-title">
+                        <h2 className="font-bold text-sm tracking-wide min-w-0 flex items-center gap-2" data-testid="traffic-control-title" data-doc-label="TRAFFIC CONTROL">
                             <span className="truncate block min-w-0">TRAFFIC CONTROL</span>
                             <span
                                 className={clsx(
@@ -41,10 +42,36 @@ export const SidebarHeader = ({ onOpenSettings }: { onOpenSettings: () => void }
                                     modeLabel.startsWith('BACKEND') && (isDark ? 'border-sky-400/30 bg-sky-400/10 text-sky-200' : 'border-sky-300 bg-sky-50 text-sky-800'),
                                 )}
                                 data-testid="deployment-mode-badge"
+                                data-doc-label="모드 배지"
                                 title={frontendConfig.api.baseUrl}
                             >
                                 {badgeText}
                             </span>
+                            {!sseConnected ? (
+                                <span
+                                    className={clsx(
+                                        'min-w-0 max-w-[110px] truncate px-1.5 py-0.5 rounded border font-bold uppercase',
+                                        isCompact ? 'text-[8px] tracking-[0.1em]' : 'text-[9px] tracking-[0.14em]',
+                                        isDark ? 'border-red-400/30 bg-red-400/10 text-red-200' : 'border-red-300 bg-red-50 text-red-800'
+                                    )}
+                                    data-testid="sse-status-badge"
+                                    data-doc-label="SSE DOWN"
+                                >
+                                    {isCompact ? 'SSE' : 'SSE DOWN'}
+                                </span>
+                            ) : sseStale ? (
+                                <span
+                                    className={clsx(
+                                        'min-w-0 max-w-[110px] truncate px-1.5 py-0.5 rounded border font-bold uppercase',
+                                        isCompact ? 'text-[8px] tracking-[0.1em]' : 'text-[9px] tracking-[0.14em]',
+                                        isDark ? 'border-amber-400/30 bg-amber-400/10 text-amber-200' : 'border-amber-300 bg-amber-50 text-amber-800'
+                                    )}
+                                    data-testid="sse-stale-badge"
+                                    data-doc-label="STREAM STALE"
+                                >
+                                    {isCompact ? 'STALE' : 'STREAM STALE'}
+                                </span>
+                            ) : null}
                         </h2>
                     </Tooltip>
                     <div className="flex items-center gap-2 text-[10px] opacity-60 font-mono min-w-0">
@@ -61,7 +88,6 @@ export const SidebarHeader = ({ onOpenSettings }: { onOpenSettings: () => void }
                         <div className="w-3 h-3 border-l-2 border-current opacity-50" />
                     </button>
                 </Tooltip>
-                {/* 테마 버튼 툴팁 */}
                 <Tooltip content="Toggle Theme" position="bottom-left">
                     <button onClick={() => {
                         const modes: ThemeType[] = ['dark', 'light', 'high-contrast'];
@@ -72,9 +98,8 @@ export const SidebarHeader = ({ onOpenSettings }: { onOpenSettings: () => void }
                         {uiPreferences.theme === 'dark' ? <Moon size={16} /> : uiPreferences.theme === 'light' ? <Sun size={16} /> : <Eye size={16} />}
                     </button>
                 </Tooltip>
-                {/* 설정 버튼 툴팁 */}
                 <Tooltip content="System Settings" position="bottom-left">
-                    <button onClick={onOpenSettings} className="p-2 rounded-md hover:bg-blue-500/20" aria-label="System Settings" data-testid="btn-system-settings">
+                    <button onClick={onOpenSettings} className="p-2 rounded-md hover:bg-blue-500/20" aria-label="System Settings" data-testid="btn-system-settings" data-doc-label="System Settings">
                         <Settings size={16} />
                     </button>
                 </Tooltip>

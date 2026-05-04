@@ -1,6 +1,5 @@
-// src/components/monitoring/radar/AgentDetailPopup.tsx
 import { useShallow } from 'zustand/react/shallow';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React from 'react';
 import { Html } from '@react-three/drei';
 import { X, Pause, Activity, Cpu, Database } from 'lucide-react'; 
 import clsx from 'clsx';
@@ -11,8 +10,9 @@ import { useAgentLogic } from '@/hooks/agent/useAgentLogic';
 import { useTacticalActions } from '@/hooks/agent/useTacticalActions';
 import { AgentActionButtons } from '@/components/common/AgentActionButtons';
 import { LOG_LEVELS } from '@/utils/logStyles';
-import { Tooltip } from '@/components/common/Tooltip';
-import { RISK_AXIS_META, RISK_AXIS_INDEX, normalizeRiskVector8, getAxesForDisplayMode } from '@/utils/riskVector';
+import { normalizeRiskVector8, getAxesForDisplayMode } from '@/utils/riskVector';
+import { RiskVectorBars } from './RiskVectorBars';
+import { useAgentDetailPopupDrag } from './useAgentDetailPopupDrag';
 
 interface AgentDetailPopupProps {
     agent: Agent | undefined;
@@ -34,6 +34,8 @@ export const AgentDetailPopup = ({
     const { uiPreferences } = useUIStore(useShallow(s => ({ uiPreferences: s.uiPreferences })));
     const { onTogglePause, onTransferLock, togglePriority, terminateAgent } = useTacticalActions();
 
+    const agentKey = agent?.id ?? '';
+    const baseY = isCompact ? -120 : -150;
     const safeAgent = (agent ?? {
         id: '',
         uuid: '',
@@ -44,119 +46,12 @@ export const AgentDetailPopup = ({
 
     const { isPaused, isForced, statusLabel, isLocked } = useAgentLogic(safeAgent, state);
 
-    const popupRef = useRef<HTMLDivElement>(null);
     const riskVector = normalizeRiskVector8((safeAgent as any).riskVector);
     const vectorDisplayMode = uiPreferences?.riskVector?.displayMode ?? 'full';
     const axes = getAxesForDisplayMode(vectorDisplayMode);
-    const agentKey = agent?.id ?? '';
-    const baseY = isCompact ? -120 : -150;
-    const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: baseY });
-    const offsetRef = useRef<{ x: number; y: number }>({ x: 0, y: baseY });
-    const dragRef = useRef<{ active: boolean; startX: number; startY: number; originX: number; originY: number }>({ active: false, startX: 0, startY: 0, originX: 0, originY: 0 });
-    const rafRef = useRef<number | null>(null);
-
-    useEffect(() => {
-        offsetRef.current = { x: 0, y: baseY };
-        setOffset(offsetRef.current);
-        dragRef.current.active = false;
-    }, [agentKey, baseY]);
-
-    useLayoutEffect(() => {
-        if (!agentKey) return;
-        const el = popupRef.current;
-        if (!el) return;
-        const pad = 10;
-
-        const apply = (next: { x: number; y: number }) => {
-            el.style.transform = `translate3d(${next.x}px, ${next.y}px, 0)`;
-        };
-
-        const clamp = () => {
-            let dx = offsetRef.current.x;
-            let dy = offsetRef.current.y;
-            apply({ x: dx, y: dy });
-
-            const rect = el.getBoundingClientRect();
-            if (rect.top < pad) dy += pad - rect.top;
-            if (rect.bottom > window.innerHeight - pad) dy -= rect.bottom - (window.innerHeight - pad);
-            if (rect.left < pad) dx += pad - rect.left;
-            if (rect.right > window.innerWidth - pad) dx -= rect.right - (window.innerWidth - pad);
-            if (dx !== offsetRef.current.x || dy !== offsetRef.current.y) {
-                offsetRef.current = { x: dx, y: dy };
-                apply(offsetRef.current);
-                setOffset(offsetRef.current);
-            }
-        };
-
-        const raf = requestAnimationFrame(clamp);
-        window.addEventListener('resize', clamp);
-        return () => {
-            cancelAnimationFrame(raf);
-            window.removeEventListener('resize', clamp);
-        };
-    }, [agentKey, isCompact]);
+    const { popupRef, offset, startDrag } = useAgentDetailPopupDrag({ agentKey, baseY });
 
     if (!agent || !position) return null;
-
-    const startDrag = (e: React.PointerEvent) => {
-        const targetEl = e.target as HTMLElement | null;
-        if (targetEl?.closest('button')) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const target = e.currentTarget as HTMLElement;
-        const pointerId = e.pointerId;
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const originX = offsetRef.current.x;
-        const originY = offsetRef.current.y;
-        let moved = false;
-
-        dragRef.current = { active: false, startX, startY, originX, originY };
-
-        const commitTransform = () => {
-            rafRef.current = null;
-            const el = popupRef.current;
-            if (el) el.style.transform = `translate3d(${offsetRef.current.x}px, ${offsetRef.current.y}px, 0)`;
-        };
-
-        const onMove = (ev: PointerEvent) => {
-            const dx = ev.clientX - startX;
-            const dy = ev.clientY - startY;
-            if (!moved && Math.abs(dx) + Math.abs(dy) < 3) return;
-            moved = true;
-            dragRef.current.active = true;
-            offsetRef.current = { x: originX + dx, y: originY + dy };
-            if (rafRef.current == null) rafRef.current = requestAnimationFrame(commitTransform);
-        };
-
-        const finish = () => {
-            dragRef.current.active = false;
-            target.removeEventListener('pointermove', onMove);
-            target.removeEventListener('pointerup', finish);
-            target.removeEventListener('pointercancel', finish);
-            window.removeEventListener('blur', finish);
-            try {
-                target.releasePointerCapture(pointerId);
-            } catch (err) {
-                void err;
-            }
-            if (rafRef.current != null) {
-                cancelAnimationFrame(rafRef.current);
-                rafRef.current = null;
-            }
-            setOffset(offsetRef.current);
-        };
-
-        try {
-            target.setPointerCapture(pointerId);
-        } catch (err) {
-            void err;
-        }
-        target.addEventListener('pointermove', onMove);
-        target.addEventListener('pointerup', finish);
-        target.addEventListener('pointercancel', finish);
-        window.addEventListener('blur', finish);
-    };
 
     return (
         <Html position={position} center zIndexRange={[100, 0]} pointerEvents="auto" occlude={false}>
@@ -222,26 +117,7 @@ export const AgentDetailPopup = ({
                 {!isCompact && (
                     <div className="mb-4">
                         <div className="text-[9px] font-mono opacity-60 mb-2">RISK VECTOR (8D)</div>
-                        <div className="grid grid-cols-2 gap-x-3 gap-y-1" data-testid="risk-vector-bars">
-                            {axes.map((k) => {
-                                const i = RISK_AXIS_INDEX[k];
-                                const v = riskVector[i as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7];
-                                return (
-                                    <div key={k} className="flex items-center gap-2" data-testid={`risk-axis-${k}`}>
-                                        <Tooltip content={`${RISK_AXIS_META[k].name} — ${RISK_AXIS_META[k].description}`} position="top">
-                                            <div className="w-6 text-[9px] font-mono opacity-60">{k}</div>
-                                        </Tooltip>
-                                        <div className={clsx("flex-1 h-2 rounded overflow-hidden", isDark ? "bg-white/10" : "bg-slate-200")}>
-                                            <div
-                                                className={clsx("h-full rounded", isDark ? "bg-emerald-400" : "bg-emerald-600")}
-                                                style={{ width: `${Math.round(v * 100)}%` }}
-                                            />
-                                        </div>
-                                        <div className="w-8 text-right text-[9px] font-mono opacity-80">{v.toFixed(2)}</div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                        <RiskVectorBars axes={axes} riskVector={riskVector} isDark={isDark} />
                     </div>
                 )}
                 
@@ -262,3 +138,4 @@ export const AgentDetailPopup = ({
         </Html>
     );
 };
+
