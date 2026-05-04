@@ -34,22 +34,16 @@ class MockKMSAdapter extends KeyProvider {
 }
 
 class AwsKMSAdapter extends KeyProvider {
-    // Requires aws-sdk to be configured
     constructor(client) {
         super();
         this.client = client; 
     }
     
     async sign(messageBytes, keyId) {
-        // Implement AWS KMS sign logic here
-        // const res = await this.client.sign({ KeyId: keyId, Message: messageBytes, SigningAlgorithm: 'ECDSA_SHA_256' }).promise();
-        // return res.Signature;
         throw new Error('AWS KMS Not fully configured');
     }
 
     async getPublicKey(keyId) {
-        // const res = await this.client.getPublicKey({ KeyId: keyId }).promise();
-        // return res.PublicKey;
         throw new Error('AWS KMS Not fully configured');
     }
 }

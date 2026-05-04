@@ -4,20 +4,23 @@
   "description": "LEX-ATC (Agent Traffic Control) System Monorepo",
   "scripts": {
     "install:all": "pnpm install",
-    "dev": "concurrently \"pnpm --filter @lex-atc/shared dev\" \"pnpm --filter backend dev\" \"pnpm --filter frontend dev\"",
-    "dev:frontend": "concurrently \"pnpm --filter @lex-atc/shared dev\" \"pnpm --filter frontend dev\"",
-    "dev:backend": "concurrently \"pnpm --filter @lex-atc/shared dev\" \"pnpm --filter backend dev\"",
+    "postinstall": "node scripts/postinstall.js",
+    "dev": "pnpm dev:backend",
+    "dev:standalone": "concurrently \"pnpm --filter @lex-atc/shared dev\" \"VITE_ENABLE_MSW=true VITE_API_URL=/api pnpm --filter frontend dev\"",
+    "dev:backend": "concurrently \"pnpm --filter @lex-atc/shared dev\" \"ALLOW_DEV_AUTH_FALLBACK=true pnpm --filter backend dev\" \"VITE_ENABLE_MSW=false VITE_API_URL=http://127.0.0.1:3000/api pnpm --filter frontend dev\"",
+    "dev:frontend": "pnpm dev:standalone",
     "build": "pnpm --filter @lex-atc/shared build && pnpm --filter frontend build",
     "lint": "pnpm --filter frontend lint",
     "clean": "find . -name \"node_modules\" -type d -prune -exec rm -rf '{}' +",
-    "typecheck": "pnpm --filter @lex-atc/shared typecheck && pnpm --filter frontend typecheck",
+    "typecheck": "pnpm --filter @lex-atc/shared typecheck && pnpm --filter frontend typecheck && pnpm --filter backend typecheck:settlement && pnpm --filter backend typecheck:settlement:impl",
     "test": "pnpm --filter @lex-atc/shared test && pnpm --filter frontend test && pnpm --filter backend test",
     "verify": "pnpm build && pnpm lint && pnpm typecheck && pnpm test && pnpm docs:check",
     "db:migrate": "cd packages/backend && pnpm dlx dotenv-cli -e ../../.env -- pnpm dlx knex migrate:latest",
     "db:rollback": "cd packages/backend && pnpm dlx dotenv-cli -e ../../.env -- pnpm dlx knex migrate:rollback",
     "stress": "pnpm --filter backend stress",
     "doctor": "node scripts/doctor.js",
-    "docs:check": "node scripts/check-doc-links.js"
+    "docs:check": "node scripts/check-doc-links.js",
+    "release:check": "node scripts/release-check.js"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

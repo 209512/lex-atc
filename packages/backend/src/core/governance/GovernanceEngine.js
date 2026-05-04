@@ -2,27 +2,11 @@ const { v4: uuidv4 } = require('uuid');
 const CONSTANTS = require('../../config/constants');
 const ZkProofGenerator = require('../crypto/ZkProofGenerator');
 const logger = require('../../utils/logger');
-
-const parseMembers = () => {
-    const raw = process.env.GOVERNANCE_MEMBERS_JSON;
-    if (!raw) return null;
-    try {
-        const arr = JSON.parse(raw);
-        if (!Array.isArray(arr)) return null;
-        const map = new Map();
-        for (const m of arr) {
-            const id = String(m?.id || '');
-            if (!id) continue;
-            const roles = Array.isArray(m?.roles) ? m.roles.map(String) : [];
-            map.set(id, { id, roles });
-        }
-        return map;
-    } catch {
-        return null;
-    }
-};
-
-const JobQueue = require('../queue/JobQueue');
+const { parseMembers, hasMember } = require('./governanceMembers');
+const executeAction = require('./governanceActions');
+const audit = require('./governanceAudit');
+const { poll, updateReady } = require('./governanceMaintenance');
+const applyEvent = require('./governanceEvents');
 
 class GovernanceEngine {
     constructor(atcService) {
@@ -74,16 +58,19 @@ class GovernanceEngine {
     }
 
     _hasMember(adminId) {
-        if (!this.members) return true;
-        return this.members.has(String(adminId));
+        return hasMember(this, adminId);
     }
 
     _shouldAutoExecute() {
-        const adminAuthDisabled = String(process.env.ADMIN_AUTH_DISABLED || '').toLowerCase() === 'true';
+        const nodeEnv = String(process.env.NODE_ENV || 'development');
+        const adminAuthDisabled =
+            nodeEnv !== 'production' &&
+            String(process.env.ADMIN_AUTH_DISABLED || '').toLowerCase() === 'true' &&
+            String(process.env.ALLOW_INSECURE_ADMIN_AUTH || '').toLowerCase() === 'true';
         return adminAuthDisabled;
     }
 
-    async propose({ adminId, action, params, timelockMs = null, threshold = null, reason = null }) {
+    async propose({ adminId, adminRoles = null, action, params, timelockMs = null, threshold = null, reason = null }) {
         if (!this._hasMember(adminId)) return { success: false, error: 'UNKNOWN_MEMBER' };
         const id = uuidv4();
         const now = Date.now();
@@ -111,22 +98,22 @@ class GovernanceEngine {
         this.proposals.set(id, proposal);
         
         // Run audit asynchronously to prevent blocking the main flow
-        this._audit('GOV_PROPOSAL_CREATED', adminId, { proposalId: id, action: proposal.action, params: proposal.params, executeAfter: proposal.executeAfter, threshold: th, timelockMs: tl, reason: proposal.reason }).catch(err => logger.error('[GovernanceEngine] Audit failed:', err));
+        audit(this, 'GOV_PROPOSAL_CREATED', adminId, { proposalId: id, action: proposal.action, params: proposal.params, executeAfter: proposal.executeAfter, threshold: th, timelockMs: tl, reason: proposal.reason }).catch(err => logger.error('[GovernanceEngine] Audit failed:', err));
         
         if (autoExecute) {
             await this.approve({ adminId, proposalId: id });
-            const executed = await this.execute({ adminId, proposalId: id });
+            const executed = await this.execute({ adminId, adminRoles, proposalId: id });
             this._syncState();
             
             // If execution failed, return success: false
             if (!executed.success) {
-                return { success: false, proposalId: id, status: this.proposals.get(id)?.status, error: executed.error, autoExecuted: true, executed };
+                return { success: false, action: proposal.action, proposalId: id, status: this.proposals.get(id)?.status, error: executed.error, autoExecuted: true, executed };
             }
             
-            return { success: true, proposalId: id, status: this.proposals.get(id)?.status || 'EXECUTED', executeAfter: proposal.executeAfter, threshold: th, autoExecuted: true, executed };
+            return { success: true, action: proposal.action, proposalId: id, status: this.proposals.get(id)?.status || 'EXECUTED', executeAfter: proposal.executeAfter, threshold: th, autoExecuted: true, executed };
         }
         this._syncState();
-        return { success: true, proposalId: id, status: proposal.status, executeAfter: proposal.executeAfter, threshold: th };
+        return { success: true, action: proposal.action, proposalId: id, status: proposal.status, executeAfter: proposal.executeAfter, threshold: th };
     }
 
     async approve({ adminId, proposalId }) {
@@ -136,11 +123,11 @@ class GovernanceEngine {
         if (p.status !== 'PENDING' && p.status !== 'READY') return { success: false, error: `BAD_STATUS_${p.status}` };
         if (!p.approvals.has(String(adminId))) {
             p.approvals.set(String(adminId), { adminId: String(adminId), at: Date.now() });
-            this._audit('GOV_APPROVED', adminId, { proposalId: p.id, approvals: p.approvals.size, threshold: p.threshold }).catch(err => logger.error('[GovernanceEngine] Audit failed:', err));
+            audit(this, 'GOV_APPROVED', adminId, { proposalId: p.id, approvals: p.approvals.size, threshold: p.threshold }).catch(err => logger.error('[GovernanceEngine] Audit failed:', err));
         }
-        await this._updateReady(p);
+        await updateReady(this, p);
         this._syncState();
-        return { success: true, proposalId: p.id, approvals: p.approvals.size, status: p.status, idempotent: true };
+        return { success: true, action: p.action, proposalId: p.id, approvals: p.approvals.size, status: p.status, idempotent: true };
     }
 
     async cancel({ adminId, proposalId, reason = 'CANCEL' }) {
@@ -148,37 +135,37 @@ class GovernanceEngine {
         const p = this.proposals.get(String(proposalId));
         if (!p) return { success: false, error: 'NOT_FOUND' };
         if (p.status === 'EXECUTED') return { success: false, error: 'ALREADY_EXECUTED' };
-        if (p.status === 'CANCELLED') return { success: true, proposalId: p.id, status: 'CANCELLED', idempotent: true };
+        if (p.status === 'CANCELLED') return { success: true, action: p.action, proposalId: p.id, status: 'CANCELLED', idempotent: true };
         p.status = 'CANCELLED';
         p.cancelledAt = Date.now();
         p.reason = String(reason);
-        this._audit('GOV_CANCELLED', adminId, { proposalId: p.id, reason: p.reason }).catch(err => logger.error('[GovernanceEngine] Audit failed:', err));
+        audit(this, 'GOV_CANCELLED', adminId, { proposalId: p.id, reason: p.reason }).catch(err => logger.error('[GovernanceEngine] Audit failed:', err));
         this._syncState();
-        return { success: true, proposalId: p.id, status: p.status };
+        return { success: true, action: p.action, proposalId: p.id, status: p.status };
     }
 
-    async execute({ adminId, proposalId }) {
+    async execute({ adminId, adminRoles = null, proposalId }) {
         if (!this._hasMember(adminId)) return { success: false, error: 'UNKNOWN_MEMBER' };
         const p = this.proposals.get(String(proposalId));
         if (!p) return { success: false, error: 'NOT_FOUND' };
-        if (p.status === 'EXECUTED') return { success: true, proposalId: p.id, status: 'EXECUTED', idempotent: true };
+        if (p.status === 'EXECUTED') return { success: true, action: p.action, proposalId: p.id, status: 'EXECUTED', idempotent: true };
         if (p.status !== 'READY') return { success: false, error: `BAD_STATUS_${p.status}` };
         if (Date.now() < p.executeAfter) return { success: false, error: 'TIMELOCK_PENDING', executeAfter: p.executeAfter };
 
         let result;
         try {
-            result = await this._executeAction(p.action, p.params);
+            result = await executeAction(this, p.action, p.params, { executorId: String(adminId), executorRoles: Array.isArray(adminRoles) ? adminRoles : null });
         } catch (error) {
             logger.error(`[GovernanceEngine] Execution failed for proposal ${proposalId}:`, error);
             p.status = 'FAILED';
             p.executedAt = Date.now();
-            this._audit('GOV_EXECUTION_FAILED', adminId, {
+            audit(this, 'GOV_EXECUTION_FAILED', adminId, {
                 proposalId: p.id,
                 action: p.action,
                 error: String(error?.message || 'UNKNOWN_EXECUTION_ERROR')
             }).catch(err => logger.error(`[GovernanceEngine] Audit failed:`, err));
             this._syncState();
-            return { success: false, proposalId: p.id, status: p.status, error: String(error?.message || 'UNKNOWN_EXECUTION_ERROR') };
+            return { success: false, action: p.action, proposalId: p.id, status: p.status, error: String(error?.message || 'UNKNOWN_EXECUTION_ERROR') };
         }
         p.status = 'EXECUTED';
         p.executedAt = Date.now();
@@ -195,154 +182,17 @@ class GovernanceEngine {
             logger.error('[GovernanceEngine] ZK Proof generation failed:', zkErr);
         }
 
-        this._audit('GOV_EXECUTED', adminId, { proposalId: p.id, action: p.action, result, zkProof: p.zkProof }).catch(err => logger.error(`[GovernanceEngine] Audit failed:`, err));
+        audit(this, 'GOV_EXECUTED', adminId, { proposalId: p.id, action: p.action, result, zkProof: p.zkProof }).catch(err => logger.error(`[GovernanceEngine] Audit failed:`, err));
         this._syncState();
-        return { success: true, proposalId: p.id, status: p.status, result };
-    }
-
-    async _updateReady(p) {
-        const enough = p.approvals.size >= p.threshold;
-        if (enough && p.status === 'PENDING') {
-            p.status = 'READY';
-            this._audit('GOV_READY', 'SYSTEM', { proposalId: p.id, executeAfter: p.executeAfter, approvals: p.approvals.size, threshold: p.threshold }).catch(err => logger.error('[GovernanceEngine] Audit failed:', err));
-        }
+        return { success: true, action: p.action, proposalId: p.id, status: p.status, result };
     }
 
     async _poll() {
-        if (this.isPolling) return;
-        this.isPolling = true;
-        try {
-            for (const p of this.proposals.values()) {
-                if (p.status === 'PENDING') {
-                    await this._updateReady(p);
-                }
-            }
-            this._cleanupMemory();
-        } catch (e) {
-            logger.error('[GovernanceEngine] Polling Error:', e.message);
-        } finally {
-            this.isPolling = false;
-        }
-    }
-
-    _cleanupMemory() {
-        const now = Date.now();
-        const config = this.atcService.config?.governance || {};
-        const TTL_MS = config.gcTtlMs || 24 * 60 * 60 * 1000; // 24 hours
-        const MAX_ITEMS = config.gcMaxItems || 5000;
-
-        // Cleanup proposals map
-        for (const [proposalId, p] of this.proposals.entries()) {
-            if (['EXECUTED', 'CANCELLED', 'FAILED'].includes(p.status)) {
-                const terminalTime = p.executedAt || p.cancelledAt || p.createdAt;
-                if (now - terminalTime > TTL_MS) {
-                    this.proposals.delete(proposalId);
-                }
-            }
-        }
-        
-        // Enforce Hard Limit
-        if (this.proposals.size > MAX_ITEMS) {
-            const sortedKeys = Array.from(this.proposals.entries())
-                .sort((a, b) => a[1].createdAt - b[1].createdAt)
-                .map(entry => entry[0]);
-            const excess = this.proposals.size - MAX_ITEMS;
-            for (let i = 0; i < excess; i++) {
-                this.proposals.delete(sortedKeys[i]);
-            }
-        }
-    }
-
-    async _executeAction(action, params) {
-        const a = String(action);
-        const svc = this.atcService;
-        const targetId = String(params.targetId || params.uuid || '');
-        
-        if (a === 'OVERRIDE') return svc.humanOverride();
-        if (a === 'RELEASE') return svc.releaseHumanLock();
-        if (a === 'TRANSFER_LOCK') return svc.transferLock(targetId);
-        if (a === 'PAUSE_AGENT') return svc.pauseAgent(targetId, Boolean(params.pause));
-        if (a === 'TERMINATE_AGENT') return svc.terminateAgent(targetId);
-        if (a === 'TOGGLE_STOP') return svc.toggleGlobalStop(Boolean(params.enable));
-        if (a === 'SCALE_AGENTS') return svc.updateAgentPool(Number(params.count));
-        if (a === 'SET_AGENT_CONFIG') return svc.registerAgentConfig(targetId, params.config || {});
-        if (a === 'TASK_FINALIZE') return svc.finalizeTask(String(params.taskId), String(params.adminUuid || 'ADMIN'));
-        if (a === 'TASK_ROLLBACK') return svc.rollbackTask(String(params.taskId), String(params.adminUuid || 'ADMIN'), String(params.reason || 'ROLLBACK'));
-        if (a === 'TASK_CANCEL') return svc.cancelTask(String(params.taskId), String(params.adminUuid || 'ADMIN'), String(params.reason || 'CANCEL'));
-        if (a === 'TASK_RETRY') return svc.isolationEngine.retryFromDLQ(String(params.taskId), String(params.adminUuid || 'ADMIN'));
-        if (a === 'SETTLEMENT_DISPUTE') {
-            const { channelId, openedBy, targetNonce, reason } = params;
-            if (!channelId) throw new Error('CHANNEL_ID_REQUIRED');
-            return svc.settlementEngine.openDispute({ channelId, openedBy: openedBy || 'ADMIN', targetNonce: Number(targetNonce) || 0, reason });
-        }
-        if (a === 'SETTLEMENT_SLASH') return svc.settlementEngine.slash(params);
-        throw new Error('UNKNOWN_ACTION');
-    }
-
-    async _audit(action, actorUuid, payload) {
-        const shardId = 'RG-0';
-        const shardEpoch = this.atcService?.state?.shards?.[shardId]?.epoch ?? 0;
-        const resourceId = this.atcService?.state?.shards?.[shardId]?.resourceId ?? null;
-        
-        JobQueue.add('audit-queue', `audit:${action}`, {
-            shardId,
-            shardEpoch,
-            resourceId,
-            fenceToken: null,
-            action,
-            actorUuid: String(actorUuid),
-            correlationId: `gov:${action}:${payload?.proposalId || uuidv4()}`,
-            payload: payload || {}
-        });
+        return poll(this);
     }
 
     applyEvent(e) {
-        if (!String(e.action || '').startsWith('GOV_')) return;
-        const p = e.payload || {};
-        const id = String(p.proposalId || '');
-        if (!id) return;
-
-        if (e.action === 'GOV_PROPOSAL_CREATED') {
-            if (!this.proposals.has(id)) {
-                const proposal = {
-                    id,
-                    action: String(p.action),
-                    params: p.params || {},
-                    status: 'PENDING',
-                    approvals: new Map(),
-                    threshold: Number(p.threshold || 1),
-                    total: Number(p.total || p.threshold || 1),
-                    timelockMs: Number(p.timelockMs || CONSTANTS.GOVERNANCE_TIMELOCK_MS || 0),
-                    executeAfter: Number(p.executeAfter || Date.now()),
-                    createdAt: e.created_at ? new Date(e.created_at).getTime() : Date.now(),
-                    executedAt: null,
-                    cancelledAt: null,
-                    reason: p.reason || null,
-                };
-                this.proposals.set(id, proposal);
-            }
-        }
-
-        const proposal = this.proposals.get(id);
-        if (!proposal) return;
-        if (e.action === 'GOV_APPROVED') {
-            const adminId = String(e.actor_uuid || '');
-            if (adminId && !proposal.approvals.has(adminId)) {
-                proposal.approvals.set(adminId, { adminId, at: e.created_at ? new Date(e.created_at).getTime() : Date.now() });
-            }
-        }
-        if (e.action === 'GOV_READY') {
-            proposal.status = 'READY';
-        }
-        if (e.action === 'GOV_EXECUTED') {
-            proposal.status = 'EXECUTED';
-            proposal.executedAt = e.created_at ? new Date(e.created_at).getTime() : Date.now();
-        }
-        if (e.action === 'GOV_CANCELLED') {
-            proposal.status = 'CANCELLED';
-            proposal.cancelledAt = e.created_at ? new Date(e.created_at).getTime() : Date.now();
-            proposal.reason = p.reason || proposal.reason;
-        }
+        return applyEvent(this, e);
     }
 }
 

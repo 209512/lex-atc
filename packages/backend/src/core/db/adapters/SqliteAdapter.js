@@ -32,7 +32,7 @@ class SqliteAdapter {
                 actor_uuid VARCHAR(255),
                 action VARCHAR(255),
                 correlation_id VARCHAR(255) UNIQUE,
-                payload JSONB,
+                payload TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             

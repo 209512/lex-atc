@@ -1,4 +1,3 @@
-// backend/src/core/AgentManager.js
 const Agent = require('./Agent');
 const CONSTANTS = require('../config/constants');
 const hazelcastManager = require('./HazelcastManager');
@@ -40,7 +39,6 @@ class AgentManager {
         
         if (this.updateTimeout) clearTimeout(this.updateTimeout);
         
-        // Use a simple promise that resolves when scaling completes
         return new Promise((resolve, reject) => {
             this.updateTimeout = setTimeout(() => {
                 this._executeScaling(targetCount)
@@ -127,26 +125,22 @@ class AgentManager {
         const agent = this.atcService.agents.get(uuid);
         if (!agent) return false;
 
-        // Graceful Drain Logic
         if (!force) {
             const shardId = this.atcService.getShardIdForAgent(uuid);
             const shard = this.atcService.state.shards?.[shardId];
             
-            // Check if agent holds the lock
             if (shard && shard.holder === uuid) {
                 this.atcService.addLog('SYSTEM', `⏳ Draining ${agent.id} (waiting for lock release)`, 'warn', { stage: LOG_STAGES.REQUEST, domain: LOG_DOMAINS.AGENT, actionKey: LOG_ACTIONS.TERMINATE_AGENT });
-                agent.isDraining = true; // Mark as draining
+                agent.isDraining = true;
                 
-                // Wait for up to 3 seconds for graceful release
                 for (let i = 0; i < 30; i++) {
                     await new Promise(r => setTimeout(r, 100));
                     const currentShard = this.atcService.state.shards?.[shardId];
                     if (!currentShard || currentShard.holder !== uuid) {
-                        break; // Released successfully
+                        break;
                     }
                 }
                 
-                // If still holds lock after timeout, force eviction via epoch bump
                 const finalShard = this.atcService.state.shards?.[shardId];
                 if (finalShard && finalShard.holder === uuid) {
                     this.atcService.addLog('SYSTEM', `🚨 Hard eviction timeout for ${agent.id}`, 'critical', { stage: LOG_STAGES.FAILED, domain: LOG_DOMAINS.AGENT, actionKey: LOG_ACTIONS.TERMINATE_AGENT });
@@ -169,7 +163,6 @@ class AgentManager {
                 await cmdMap.remove(uuid);
             }
         } catch (e) {
-            // ignore
         }
 
         this.atcService.agents.delete(uuid);
@@ -179,7 +172,6 @@ class AgentManager {
         this.atcService.clearAgentLogs(uuid);
         this.atcService.addLog('SYSTEM', `🗑️ ${agent.id} removed from traffic`, 'system', { stage: LOG_STAGES.EXECUTED, domain: LOG_DOMAINS.AGENT, actionKey: LOG_ACTIONS.TERMINATE_AGENT });
         
-        // Always update state and emit so the frontend UI (Agent count, radar) reflects the removal immediately
         this.atcService.state.activeAgentCount = this.atcService.agents.size;
         this.atcService.state.trafficIntensity = this.atcService.agents.size;
         this.atcService.emitState();

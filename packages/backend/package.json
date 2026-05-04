@@ -9,6 +9,8 @@
     "stress": "node scripts/stress-sim.js",
     "bench:stress": "node scripts/bench-stress.js",
     "validate:prod-env": "NODE_ENV=production node scripts/validate-prod-env.js",
+    "typecheck:settlement": "tsc -p tsconfig.settlement.json",
+    "typecheck:settlement:impl": "tsc -p tsconfig.settlement.impl.json",
     "test:benchmark": "node test/benchmark.js"
   },
   "keywords": [],

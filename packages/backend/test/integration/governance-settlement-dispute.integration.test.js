@@ -10,6 +10,7 @@ describe('governance settlement dispute (backend mode contract)', () => {
     process.env.NODE_ENV = 'test';
     process.env.DB_MODE = 'memory';
     process.env.ADMIN_AUTH_DISABLED = 'true';
+    process.env.ALLOW_INSECURE_ADMIN_AUTH = 'true';
     process.env.SOLANA_SETTLEMENT_ENABLED = 'false';
     delete process.env.ALLOW_DEV_AUTH_FALLBACK;
     delete process.env.ALLOW_DEV_SEED_FALLBACK;
@@ -21,7 +22,7 @@ describe('governance settlement dispute (backend mode contract)', () => {
 
     const mod = require('../..');
     const { loadBackendConfig } = require('../../src/config/env');
-    app = mod.buildApp(atcService, loadBackendConfig({ ...process.env, NODE_ENV: 'test', ADMIN_AUTH_DISABLED: 'true' }));
+    app = mod.buildApp(atcService, loadBackendConfig({ ...process.env, NODE_ENV: 'test', ADMIN_AUTH_DISABLED: 'true', ALLOW_INSECURE_ADMIN_AUTH: 'true' }));
   });
 
   afterAll(async () => {

@@ -10,6 +10,36 @@ class ArchivingWorker {
         this.retentionDays = 180; // 6 months
     }
 
+    _getDirs() {
+        const pendingDir = path.join(__dirname, `../../../archives/pending`);
+        const completedDir = path.join(__dirname, `../../../archives/completed`);
+        return { pendingDir, completedDir };
+    }
+
+    _ensureDirs({ pendingDir, completedDir }) {
+        fs.mkdirSync(pendingDir, { recursive: true });
+        fs.mkdirSync(completedDir, { recursive: true });
+    }
+
+    _listPendingJsonFiles(pendingDir) {
+        if (!fs.existsSync(pendingDir)) return [];
+        return fs.readdirSync(pendingDir).filter(f => f.endsWith('.json'));
+    }
+
+    async _cleanupDbAfterArchive(cutoffStr) {
+        const safeSuffix = String(cutoffStr).replace(/[^0-9]/g, '');
+        if (!safeSuffix) return;
+        try {
+            await this.pool.query(`DROP TABLE IF EXISTS event_logs_p${safeSuffix}`);
+            await this.pool.query(`DROP TABLE IF EXISTS agent_snapshots_p${safeSuffix}`);
+            logger.info(`[ArchivingWorker] Dropped partitions older than ${cutoffStr}.`);
+        } catch (dropErr) {
+            await this.pool.query(`DELETE FROM event_logs WHERE created_at < $1`, [cutoffStr]);
+            await this.pool.query(`DELETE FROM agent_snapshots WHERE snapshot_created_at < $1`, [cutoffStr]);
+            logger.info(`[ArchivingWorker] Cleared records older than ${cutoffStr} from DB.`);
+        }
+    }
+
     _getIrys() {
         if (!process.env.IRYS_PRIVATE_KEY) return null;
         try {
@@ -43,12 +73,8 @@ class ArchivingWorker {
     }
 
     async processRetryQueue() {
-        const pendingDir = path.join(__dirname, `../../../archives/pending`);
-        const completedDir = path.join(__dirname, `../../../archives/completed`);
-
-        if (!fs.existsSync(pendingDir)) return;
-
-        const files = fs.readdirSync(pendingDir).filter(f => f.endsWith('.json'));
+        const { pendingDir, completedDir } = this._getDirs();
+        const files = this._listPendingJsonFiles(pendingDir);
         if (files.length === 0) return;
 
         const irys = this._getIrys();
@@ -65,25 +91,13 @@ class ArchivingWorker {
                 const receipt = await irys.upload(dumpString);
                 logger.info(`[ArchivingWorker] Successfully uploaded ${file}! TxId: ${receipt.id}`);
                 
-                if (!fs.existsSync(completedDir)) fs.mkdirSync(completedDir, { recursive: true });
+                this._ensureDirs({ pendingDir, completedDir });
                 fs.renameSync(pendingFile, path.join(completedDir, file));
                 
                 const parts = file.split('_');
                 if (parts.length >= 2) {
                     const cutoffStr = parts[1];
-                    // We attempt to drop partitions corresponding to the old date, otherwise fallback to row-deletion
-                    try {
-                        const safeSuffix = cutoffStr.replace(/[^0-9]/g, '');
-                        if (!safeSuffix) continue;
-
-                        await this.pool.query(`DROP TABLE IF EXISTS event_logs_p${safeSuffix}`);
-                        await this.pool.query(`DROP TABLE IF EXISTS agent_snapshots_p${safeSuffix}`);
-                        logger.info(`[ArchivingWorker] Dropped partitions older than ${cutoffStr} after successful retry.`);
-                    } catch (dropErr) {
-                        await this.pool.query(`DELETE FROM event_logs WHERE created_at < $1`, [cutoffStr]);
-                        await this.pool.query(`DELETE FROM agent_snapshots WHERE snapshot_created_at < $1`, [cutoffStr]);
-                        logger.info(`[ArchivingWorker] Cleared records older than ${cutoffStr} from DB after successful retry.`);
-                    }
+                    await this._cleanupDbAfterArchive(cutoffStr);
                 }
             } catch (err) {
                 logger.error(`[ArchivingWorker] Failed to upload ${file} during retry:`, err.message);
@@ -114,13 +128,11 @@ class ArchivingWorker {
                 
                 const dumpData = { archived: count, date: cutoffStr, type: 'lex_atc_event_logs' };
                 const dumpString = JSON.stringify(dumpData);
-                const pendingDir = path.join(__dirname, `../../../archives/pending`);
-                const completedDir = path.join(__dirname, `../../../archives/completed`);
+                const { pendingDir, completedDir } = this._getDirs();
                 const fileName = `events_${cutoffStr}_${Date.now()}.json`;
                 const pendingFile = path.join(pendingDir, fileName);
                 
-                fs.mkdirSync(pendingDir, { recursive: true });
-                fs.mkdirSync(completedDir, { recursive: true });
+                this._ensureDirs({ pendingDir, completedDir });
                 fs.writeFileSync(pendingFile, dumpString);
                 
                 // Arweave / Irys Decentralized Storage Upload
@@ -144,19 +156,7 @@ class ArchivingWorker {
                 if (uploadSuccess) {
                     fs.renameSync(pendingFile, path.join(completedDir, fileName));
                     
-                    // Attempt partition drop first, fallback to DELETE
-                    try {
-                        const safeSuffix = cutoffStr.replace(/[^0-9]/g, '');
-                        if (!safeSuffix) return;
-            
-                        await this.pool.query(`DROP TABLE IF EXISTS event_logs_p${safeSuffix}`);
-                        await this.pool.query(`DROP TABLE IF EXISTS agent_snapshots_p${safeSuffix}`);
-                        logger.info(`[ArchivingWorker] Archival complete. Dropped partition p${safeSuffix}.`);
-                    } catch (dropErr) {
-                        await this.pool.query(`DELETE FROM event_logs WHERE created_at < $1`, [cutoffStr]);
-                        await this.pool.query(`DELETE FROM agent_snapshots WHERE snapshot_created_at < $1`, [cutoffStr]);
-                        logger.info(`[ArchivingWorker] Archival complete. Cleared ${count} records via row-deletion.`);
-                    }
+                    await this._cleanupDbAfterArchive(cutoffStr);
                 } else {
                     logger.info(`[ArchivingWorker] Archival deferred due to upload failure. Records kept in DB for next retry.`);
                 }

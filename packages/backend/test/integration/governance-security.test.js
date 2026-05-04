@@ -10,6 +10,7 @@ describe('Admin security & governance', () => {
     jest.resetModules();
     process.env.NODE_ENV = 'test';
     process.env.ADMIN_AUTH_DISABLED = 'true';
+    process.env.ALLOW_INSECURE_ADMIN_AUTH = 'true';
     delete process.env.ADMIN_TOKEN_SECRET;
     let overrideCalled = 0;
 

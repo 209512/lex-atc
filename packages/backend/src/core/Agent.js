@@ -1,5 +1,4 @@
-// backend/src/core/Agent.js
-const { v4: uuidv4, v5: uuidv5 } = require('uuid');
+const { v5: uuidv5 } = require('uuid');
 const tracer = require('../utils/apm');
 const crypto = require('crypto');
 const hazelcastManager = require('./HazelcastManager');
@@ -10,27 +9,14 @@ const JobQueue = require('./queue/JobQueue');
 const PhysicsEngine = require('./PhysicsEngine');
 const WalletEngine = require('./WalletEngine');
 const db = require('./DatabaseManager');
-const ReputationEngine = require('./ReputationEngine');
 const { LEX_CONSTITUTION, LOG_DOMAINS, LOG_STAGES, LOG_ACTIONS } = require('@lex-atc/shared');
-const path = require('path');
-const Piscina = require('piscina');
+const AgentMining = require('./AgentMining');
+const AgentErrors = require('./AgentErrors');
+const AgentExecution = require('./AgentExecution');
 
 const AGENT_UUID_NAMESPACE = '8d7f7f92-6bd9-4d7e-a46b-2bdb0e5b2f6d';
 
 const createAgentUuid = (id) => uuidv5(`lex-atc:${String(id)}`, AGENT_UUID_NAMESPACE);
-
-let miningWorkerPool = null;
-
-function getMiningWorkerPool() {
-    if (!miningWorkerPool) {
-        miningWorkerPool = new Piscina({
-            filename: path.resolve(__dirname, 'miningWorker.js'),
-            maxThreads: Math.max(1, require('os').cpus().length - 1),
-            idleTimeout: 30000,
-        });
-    }
-    return miningWorkerPool;
-}
 
 class Agent {  
   constructor(id, eventBus, config = {}, sharedClient = null) {  
@@ -362,20 +348,7 @@ class Agent {
   }
 
   async _solveChallenge({ challenge, difficulty }) {
-      if (this._abortController) this._abortController.abort();
-      this._abortController = new AbortController();
-      
-      try {
-          return await getMiningWorkerPool().run(
-              { challenge, difficulty, yieldStep: CONSTANTS.MINING_YIELD_STEP || 1000 },
-              { signal: this._abortController.signal }
-          );
-      } catch (err) {
-          if (err.name === 'AbortError') {
-              throw new Error('MINING_ABORTED');
-          }
-          throw err;
-      }
+      return AgentMining.solveChallenge(this, { challenge, difficulty });
   }
 
   async updateStatus(status, resource, activity) {
@@ -429,112 +402,11 @@ class Agent {
   }
   
   async handleError(err) {
-        this.errorCount++;
-        this.stats.totalTasks++;
-        this.account.reputation = ReputationEngine.calculate(this.account, this.stats);
-        this.log(`⚠️ Runtime Error (${this.errorCount}): ${err.message}`, 'warn', { stage: LOG_STAGES.FAILED, domain: LOG_DOMAINS.AGENT, actionKey: LOG_ACTIONS.TASK_FINALIZE });
-        await this.updateStatus('ERROR', CONSTANTS.RESOURCE_NONE, `FAULT_${err.message}`);
-        
-        if (this.currentLock && this.currentFence) {
-            try { 
-                await this.currentLock.unlock(this.currentFence); 
-            } catch (e) {
-                logger.error(`[Agent ${this.uuid}] Failed to unlock during error handling:`, e.message);
-            }
-            this.currentLock = null; this.currentFence = null;
-        }
-        await this._delay(CONSTANTS.AGENT_ERROR_DELAY || 1000);
+        return AgentErrors.handleError(this, err);
     }
 
   async executeTask(isTarget) {
-      const startTime = Date.now();
-      this.stats.totalTasks++; 
-      await this.updateStatus(CONSTANTS.STATUS_ACTIVE, this.eventBus.state.resourceId, "AI_THINKING");
-
-      const systemInstruction = this.config.systemPrompt || `You are a tactical ATC Agent [${this.id}].`;
-      const prompt = isTarget ? "EMERGENCY OVERRIDE: Plan?" : "Describe task in 15 words.";
-
-      try {
-          this.log(`🧠 AI Processing (${this.config.provider || 'mock'})...`, 'info', { stage: LOG_STAGES.REQUEST, domain: LOG_DOMAINS.AGENT, actionKey: LOG_ACTIONS.TASK_FINALIZE });
-          
-          let timeoutId;
-          const abortController = new AbortController();
-          const timeoutPromise = new Promise((_, reject) => {
-              timeoutId = setTimeout(() => {
-                  abortController.abort();
-                  reject(new Error('AI_TIMEOUT'));
-              }, CONSTANTS.AGENT_AI_TIMEOUT || 12000);
-          });
-          const aiResponse = await Promise.race([
-              this.provider.generateResponse(prompt, systemInstruction, abortController.signal),
-              timeoutPromise
-          ]);
-          clearTimeout(timeoutId);
-
-          if (!aiResponse || aiResponse.length < 5) throw new Error('EMPTY_PAYLOAD');
-
-          if (this.eventBus?.isolationEngine && this.currentContext) {
-              const shardId = this.currentContext.shardId;
-              const shardEpoch = this.currentContext.shardEpoch;
-              const resourceId = this.currentContext.resourceId;
-              const fenceToken = this.currentContext.fenceToken;
-              
-              // Double Check Middleware: Verify Fencing Token before calling external execution
-              if (this.eventBus.lockDirector && typeof this.eventBus.lockDirector.verifyFencingToken === 'function') {
-                  if (!this.eventBus.lockDirector.verifyFencingToken(shardId, fenceToken)) {
-                      throw new Error('FENCING_TOKEN_VIOLATION');
-                  }
-              }
-
-              const ctx = {
-                  classification: this.config.isolationClass || null
-              };
-
-              const res = await this.eventBus.isolationEngine.createIntent({
-                  actorUuid: this.uuid,
-                  shardId,
-                  shardEpoch,
-                  resourceId,
-                  fenceToken,
-                  text: aiResponse,
-                  context: ctx
-              });
-
-              if (res.status === 'PENDING') {
-                  this.log(`⏳ Deferred Task: ${res.taskId}`, 'policy', { stage: LOG_STAGES.ACCEPTED, domain: LOG_DOMAINS.ISOLATION, actionKey: LOG_ACTIONS.TASK_FINALIZE });
-              } else {
-                  this.log(`✅ Task Executed: ${res.taskId}`, 'success', { stage: LOG_STAGES.EXECUTED, domain: LOG_DOMAINS.ISOLATION, actionKey: LOG_ACTIONS.TASK_FINALIZE });
-              }
-          }
-
-          const elapsed = Date.now() - startTime;
-          this.stats.successCount++;
-          this.stats.avgAiLatency = (this.stats.avgAiLatency * 0.8) + (elapsed * 0.2);
-
-          this.account.reputation = ReputationEngine.calculate(this.account, this.stats);
-          this.account.lastWorkHash = `0x${uuidv4().replace(/-/g, '').slice(0, 16)}`;
-          
-          this.log(`📝 [Result]: ${aiResponse}`, 'success', { stage: LOG_STAGES.EXECUTED, domain: LOG_DOMAINS.AGENT, actionKey: LOG_ACTIONS.TASK_FINALIZE });
-          await this.updateStatus(null, null, "TASK_COMPLETED");
-          
-          const minTime = CONSTANTS.AGENT_MIN_TASK_TIME || 1500;
-          if (elapsed < minTime) {
-              await this._delay(minTime - elapsed);
-          }
-
-      } catch (err) {
-          const reason = err.message;
-          this.log(`❌ AI Execution Error: ${reason}`, 'critical', { stage: LOG_STAGES.FAILED, domain: LOG_DOMAINS.AGENT, actionKey: LOG_ACTIONS.TASK_FINALIZE });
-          if (this.eventBus.treasury) this.eventBus.treasury.applySlashing(this, reason, this.currentContext);
-          
-          this.account.reputation = ReputationEngine.calculate(this.account, this.stats);
-          await this.updateStatus(null, null, "SLASHED");
-          await this._delay(CONSTANTS.AGENT_SLASHED_DELAY || 2000);
-      }
-
-      if (isTarget) {
-          this.eventBus.emitState();
-      }
+      return AgentExecution.executeTask(this, isTarget);
   }
 
   async stop() {  
@@ -579,13 +451,7 @@ class Agent {
   }  
 
   static async destroyPool() {
-      if (miningWorkerPool) {
-        try { await miningWorkerPool.destroy(); } catch (e) {
-            const logger = require('../utils/logger');
-            logger.debug(`[Agent] Worker pool destroy error: ${e.message}`);
-        }
-        miningWorkerPool = null;
-    }
+      return AgentMining.destroyPool();
   }
 }  
   
