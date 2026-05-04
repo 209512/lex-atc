@@ -1,0 +1,17 @@
+{
+  "name": "lex-atc (fullstack)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "rust-lang.rust-analyzer"
+      ]
+    }
+  },
+  "postCreateCommand": "pnpm -w install && pnpm rebuild bigint-buffer && (cd packages/contracts && pnpm install)",
+  "remoteUser": "node"
+}
