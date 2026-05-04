@@ -3,7 +3,6 @@ const anchor = require('@coral-xyz/anchor');
 const WalletEngine = require('../WalletEngine');
 const SolanaSettlementAdapter = require('./SolanaSettlementAdapter');
 
-// Simulated program ID for Lex ATC Settlement
 const PROGRAM_ID = new PublicKey('1exAtcSett1ementProgram11111111111111111111');
 
 const logger = require('../../utils/logger');
@@ -31,7 +30,7 @@ class MockSolanaSettlementAdapter extends SolanaSettlementAdapter {
             { commitment: 'confirmed' }
         );
         
-        // Use a dummy IDL for now since we are still simulating the contract calls on-chain
+        // Dummy IDL for simulation
         const idl = {
             version: "0.1.0",
             name: "lex_atc_settlement",
@@ -86,13 +85,11 @@ class MockSolanaSettlementAdapter extends SolanaSettlementAdapter {
                 return { ok: true, txid: `sim_settle_${snapshot.channelId}_${snapshot.nonce}_${Date.now()}` };
             }
 
-            // Derive channel PDA or use a dummy pubkey for simulation
             const [channelPda] = PublicKey.findProgramAddressSync(
                 [Buffer.from("channel"), Buffer.from(snapshot.channelId)],
                 program.programId
             );
 
-            // Execute Anchor smart contract instruction with Priority Fees
             const priorityFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
                 microLamports: parseInt(process.env.SOLANA_PRIORITY_FEE_MICRO_LAMPORTS || '50000', 10)
             });
@@ -100,7 +97,6 @@ class MockSolanaSettlementAdapter extends SolanaSettlementAdapter {
                 units: 200000
             });
 
-            // Address Lookup Table (LUT) logic for optimizing large txs
             let lutAccounts = [];
             if (process.env.SOLANA_LUT_ADDRESS) {
                 try {
@@ -131,7 +127,6 @@ class MockSolanaSettlementAdapter extends SolanaSettlementAdapter {
             return { ok: true, txid };
         } catch (error) {
             logger.error('[SolanaAdapter] submitSnapshot failed:', error);
-            // If the simulated program doesn't exist on-chain, fallback to mock tx
             if (error.message.includes('not found') || error.message.includes('Signature verification')) {
                  return { ok: true, txid: `fallback_sim_settle_${snapshot.channelId}_${Date.now()}` };
             }
@@ -141,12 +136,12 @@ class MockSolanaSettlementAdapter extends SolanaSettlementAdapter {
 
     async openDispute(dispute) {
         if (WalletEngine.isMockMode() || !WalletEngine.connection) {
-            return { ok: true, txid: `sim_dispute_${dispute.channelId}_${Date.now()}` };
+            return { ok: true, txid: `sim_dispute_${dispute.channelId}_${Date.now()}`, commitment: 'mocked', status: 'MOCKED' };
         }
 
         try {
             const program = this._getProgram();
-            if (!program) return { ok: true, txid: `sim_dispute_${dispute.channelId}_${Date.now()}` };
+            if (!program) return { ok: true, txid: `sim_dispute_${dispute.channelId}_${Date.now()}`, commitment: 'mocked', status: 'MOCKED' };
 
             const [channelPda] = PublicKey.findProgramAddressSync(
                 [Buffer.from("channel"), Buffer.from(dispute.channelId)],
@@ -162,11 +157,11 @@ class MockSolanaSettlementAdapter extends SolanaSettlementAdapter {
             })
             .rpc();
             
-            return { ok: true, txid };
+            return { ok: true, txid, commitment: 'confirmed', status: 'CONFIRMED' };
         } catch (error) {
             logger.error('[SolanaAdapter] openDispute failed:', error);
             if (error.message.includes('not found')) {
-                 return { ok: true, txid: `fallback_sim_dispute_${dispute.channelId}_${Date.now()}` };
+                 return { ok: true, txid: `fallback_sim_dispute_${dispute.channelId}_${Date.now()}`, commitment: 'mocked', status: 'MOCKED' };
             }
             return { ok: false, error: error.message };
         }
@@ -174,12 +169,12 @@ class MockSolanaSettlementAdapter extends SolanaSettlementAdapter {
 
     async slash(slashing) {
         if (WalletEngine.isMockMode() || !WalletEngine.connection) {
-            return { ok: true, txid: `sim_slash_${slashing.channelId}_${Date.now()}` };
+            return { ok: true, txid: `sim_slash_${slashing.channelId}_${Date.now()}`, commitment: 'mocked', status: 'MOCKED' };
         }
 
         try {
             const program = this._getProgram();
-            if (!program) return { ok: true, txid: `sim_slash_${slashing.channelId}_${Date.now()}` };
+            if (!program) return { ok: true, txid: `sim_slash_${slashing.channelId}_${Date.now()}`, commitment: 'mocked', status: 'MOCKED' };
 
             const [channelPda] = PublicKey.findProgramAddressSync(
                 [Buffer.from("channel"), Buffer.from(slashing.channelId)],
@@ -195,11 +190,11 @@ class MockSolanaSettlementAdapter extends SolanaSettlementAdapter {
             })
             .rpc();
             
-            return { ok: true, txid };
+            return { ok: true, txid, commitment: 'confirmed', status: 'CONFIRMED' };
         } catch (error) {
             logger.error('[SolanaAdapter] slash failed:', error);
             if (error.message.includes('not found')) {
-                 return { ok: true, txid: `fallback_sim_slash_${slashing.channelId}_${Date.now()}` };
+                 return { ok: true, txid: `fallback_sim_slash_${slashing.channelId}_${Date.now()}`, commitment: 'mocked', status: 'MOCKED' };
             }
             return { ok: false, error: error.message };
         }
@@ -207,4 +202,3 @@ class MockSolanaSettlementAdapter extends SolanaSettlementAdapter {
 }
 
 module.exports = MockSolanaSettlementAdapter;
-

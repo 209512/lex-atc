@@ -1,0 +1,41 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`settlementReducer action snapshots 1`] = `
+{
+  "disputedByChannel": [
+    [
+      "channel:AGT-001",
+      true,
+    ],
+  ],
+  "lastSnapshotByChannel": [
+    [
+      "channel:AGT-001",
+      {
+        "channelId": "channel:AGT-001",
+        "commitment": null,
+        "createdAt": 1700000000000,
+        "nonce": 1,
+        "stateHash": "abc",
+        "status": "SIGNED",
+        "txid": null,
+      },
+    ],
+  ],
+  "pendingByChannel": [
+    [
+      "channel:AGT-001",
+      [
+        {
+          "task": {
+            "id": "t1",
+          },
+        },
+      ],
+    ],
+  ],
+  "resolvedDisputes": [
+    "dispute:channel:AGT-001:1",
+  ],
+}
+`;

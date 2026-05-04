@@ -1,5 +1,119 @@
 const logger = require('../../../utils/logger');
 
+const normalizeSnapshotRow = (snapshot) => {
+    if (!snapshot) throw new Error('Missing snapshot');
+    return {
+        id: String(snapshot.id),
+        channelId: String(snapshot.channelId),
+        nonce: Number(snapshot.nonce),
+        balances: snapshot.balances || {},
+        stateHash: String(snapshot.stateHash),
+        signatures: snapshot.signatures || {},
+        disputeWindowMs: Number(snapshot.disputeWindowMs),
+        validUntil: snapshot.validUntil,
+        status: String(snapshot.status),
+        taskId: snapshot.taskId || null,
+        globalSeq: Number(snapshot.globalSeq),
+        shardId: String(snapshot.shardId),
+        shardEpoch: Number(snapshot.shardEpoch),
+        resourceId: snapshot.resourceId || null,
+    };
+};
+
+const validateNextNonce = ({ channelId, nonce, lastNonce }) => {
+    if (nonce <= lastNonce) throw new Error('Stale nonce');
+    if (nonce !== lastNonce + 1) throw new Error('Nonce gap');
+    return { channelId, nonce, lastNonce };
+};
+
+const insertMemorySnapshot = ({ store, row }) => {
+    if (store.channelHashes.has(row.stateHash)) throw new Error('Duplicate state hash');
+    const last = store.channelNonce.get(row.channelId) ?? -1;
+    validateNextNonce({ channelId: row.channelId, nonce: row.nonce, lastNonce: last });
+
+    store.channelHashes.add(row.stateHash);
+    store.channelNonce.set(row.channelId, row.nonce);
+    store.channelSnapshots.set(`${row.channelId}:${row.nonce}`, {
+        id: row.id,
+        channel_id: row.channelId,
+        nonce: row.nonce,
+        balances: row.balances,
+        state_hash: row.stateHash,
+        signatures: row.signatures,
+        dispute_window_ms: row.disputeWindowMs,
+        valid_until: row.validUntil,
+        status: row.status,
+        task_id: row.taskId,
+        global_seq: row.globalSeq,
+        shard_id: row.shardId,
+        shard_epoch: row.shardEpoch,
+        resource_id: row.resourceId,
+        created_at: new Date().toISOString(),
+    });
+
+    const ch = store.channels.get(row.channelId);
+    if (ch) {
+        ch.last_nonce = row.nonce;
+        ch.last_state_hash = row.stateHash;
+        ch.updated_at = new Date().toISOString();
+        store.channels.set(row.channelId, ch);
+    }
+    return { inserted: true };
+};
+
+const insertDbSnapshot = async ({ adapterMode, pool, row }) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        if (adapterMode !== 'sqlite') {
+            await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [row.channelId]);
+        }
+
+        const selectSql =
+            adapterMode === 'sqlite'
+                ? `SELECT last_nonce FROM state_channels WHERE channel_id = $1`
+                : `SELECT last_nonce FROM state_channels WHERE channel_id = $1 FOR UPDATE`;
+
+        const chRes = await client.query(selectSql, [row.channelId]);
+        const lastNonce = chRes.rows[0]?.last_nonce !== undefined ? Number(chRes.rows[0].last_nonce) : -1;
+        validateNextNonce({ channelId: row.channelId, nonce: row.nonce, lastNonce });
+
+        await client.query(
+            `
+                INSERT INTO channel_snapshots (
+                    id, channel_id, nonce, balances, state_hash, signatures,
+                    dispute_window_ms, valid_until, status, task_id,
+                    global_seq, shard_id, shard_epoch, resource_id
+                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+                `,
+            [
+                row.id, row.channelId, row.nonce, row.balances, row.stateHash, row.signatures,
+                row.disputeWindowMs, row.validUntil, row.status, row.taskId,
+                row.globalSeq, row.shardId, row.shardEpoch, row.resourceId,
+            ]
+        );
+
+        await client.query(
+            `
+                UPDATE state_channels
+                SET last_nonce = $2, last_state_hash = $3, updated_at = CURRENT_TIMESTAMP
+                WHERE channel_id = $1
+                `,
+            [row.channelId, row.nonce, row.stateHash]
+        );
+
+        await client.query('COMMIT');
+        return { inserted: true };
+    } catch (e) {
+        try { await client.query('ROLLBACK'); } catch (rollbackErr) {
+            logger.error('[ChannelRepository] Rollback failed:', rollbackErr.message);
+        }
+        throw e;
+    } finally {
+        client.release();
+    }
+};
+
 class ChannelRepository {
     constructor(adapterManager) {
         this.adapterManager = adapterManager;
@@ -72,113 +186,9 @@ class ChannelRepository {
     }
 
     async insertChannelSnapshot(snapshot) {
-        if (!snapshot) throw new Error('Missing snapshot');
-        const row = {
-            id: String(snapshot.id),
-            channelId: String(snapshot.channelId),
-            nonce: Number(snapshot.nonce),
-            balances: snapshot.balances || {},
-            stateHash: String(snapshot.stateHash),
-            signatures: snapshot.signatures || {},
-            disputeWindowMs: Number(snapshot.disputeWindowMs),
-            validUntil: snapshot.validUntil,
-            status: String(snapshot.status),
-            taskId: snapshot.taskId || null,
-            globalSeq: Number(snapshot.globalSeq),
-            shardId: String(snapshot.shardId),
-            shardEpoch: Number(snapshot.shardEpoch),
-            resourceId: snapshot.resourceId || null,
-        };
-
-        if (this.isMemory) {
-            if (this.store.channelHashes.has(row.stateHash)) throw new Error('Duplicate state hash');
-            const last = this.store.channelNonce.get(row.channelId) ?? -1;
-            if (row.nonce <= last) throw new Error('Stale nonce');
-            if (row.nonce !== last + 1) throw new Error('Nonce gap');
-
-            this.store.channelHashes.add(row.stateHash);
-            this.store.channelNonce.set(row.channelId, row.nonce);
-            this.store.channelSnapshots.set(`${row.channelId}:${row.nonce}`, {
-                id: row.id,
-                channel_id: row.channelId,
-                nonce: row.nonce,
-                balances: row.balances,
-                state_hash: row.stateHash,
-                signatures: row.signatures,
-                dispute_window_ms: row.disputeWindowMs,
-                valid_until: row.validUntil,
-                status: row.status,
-                task_id: row.taskId,
-                global_seq: row.globalSeq,
-                shard_id: row.shardId,
-                shard_epoch: row.shardEpoch,
-                resource_id: row.resourceId,
-                created_at: new Date().toISOString(),
-            });
-
-            const ch = this.store.channels.get(row.channelId);
-            if (ch) {
-                ch.last_nonce = row.nonce;
-                ch.last_state_hash = row.stateHash;
-                ch.updated_at = new Date().toISOString();
-                this.store.channels.set(row.channelId, ch);
-            }
-            return { inserted: true };
-        }
-
-        const client = await this.pool.connect();
-        try {
-            await client.query('BEGIN');
-            
-            // Avoid advisory locks in sqlite
-            if (this.adapterManager.mode !== 'sqlite') {
-                await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [row.channelId]);
-            }
-
-            const chRes = await client.query(
-                this.adapterManager.mode === 'sqlite' 
-                    ? `SELECT last_nonce FROM state_channels WHERE channel_id = $1`
-                    : `SELECT last_nonce FROM state_channels WHERE channel_id = $1 FOR UPDATE`,
-                [row.channelId]
-            );
-            const lastNonce = chRes.rows[0]?.last_nonce !== undefined ? Number(chRes.rows[0].last_nonce) : -1;
-            if (row.nonce <= lastNonce) throw new Error('Stale nonce');
-            if (row.nonce !== lastNonce + 1) throw new Error('Nonce gap');
-
-            await client.query(
-                `
-                INSERT INTO channel_snapshots (
-                    id, channel_id, nonce, balances, state_hash, signatures,
-                    dispute_window_ms, valid_until, status, task_id,
-                    global_seq, shard_id, shard_epoch, resource_id
-                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-                `,
-                [
-                    row.id, row.channelId, row.nonce, row.balances, row.stateHash, row.signatures,
-                    row.disputeWindowMs, row.validUntil, row.status, row.taskId,
-                    row.globalSeq, row.shardId, row.shardEpoch, row.resourceId,
-                ]
-            );
-
-            await client.query(
-                `
-                UPDATE state_channels
-                SET last_nonce = $2, last_state_hash = $3, updated_at = CURRENT_TIMESTAMP
-                WHERE channel_id = $1
-                `,
-                [row.channelId, row.nonce, row.stateHash]
-            );
-
-            await client.query('COMMIT');
-            return { inserted: true };
-        } catch (e) {
-            try { await client.query('ROLLBACK'); } catch (rollbackErr) {
-                logger.error('[ChannelRepository] Rollback failed:', rollbackErr.message);
-            }
-            throw e;
-        } finally {
-            client.release();
-        }
+        const row = normalizeSnapshotRow(snapshot);
+        if (this.isMemory) return insertMemorySnapshot({ store: this.store, row });
+        return insertDbSnapshot({ adapterMode: this.adapterManager.mode, pool: this.pool, row });
     }
 
     async insertDispute({ disputeId, channelId, openedBy, targetNonce, reason, status, idempotencyKey }) {

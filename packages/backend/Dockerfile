@@ -17,6 +17,7 @@ COPY packages/shared/package.json ./packages/shared/
 
 # 3. 의존성 설치
 RUN pnpm install --frozen-lockfile
+RUN pnpm rebuild bigint-buffer
 
 # 4. 소스 코드 복사 (빌드를 위해 소스 전체가 필요함)
 COPY packages/shared ./packages/shared

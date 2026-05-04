@@ -1,7 +1,8 @@
-const { LOG_CONFIG } = require('@lex-atc/shared');
+const { LOG_CONFIG, LOG_DOMAINS, LOG_STAGES, LOG_ACTIONS, normalizeLogMeta } = require('@lex-atc/shared');
 const logger = require('../utils/logger');
 const CONSTANTS = require('../config/constants');
 const db = require('./DatabaseManager');
+const crypto = require('crypto');
 
 class LogManager {
     constructor(atcService) {
@@ -11,24 +12,26 @@ class LogManager {
     addLog(agentId, message, type = 'info', meta = {}) {
         const config = LOG_CONFIG.levels[type] || LOG_CONFIG.levels.info;
         const reset = '\x1b[0m';
-        const agent = this.atcService.agents.get(agentId);
+        const agentIdStr = agentId ? String(agentId) : 'system';
+        const agent = this.atcService.agents.get(agentIdStr);
         
-        const displayName = agent ? (agent.id || agent.displayName) : agentId;
+        const displayName = agent ? (agent.id || agent.displayName) : agentIdStr;
+        const normalizedMeta = normalizeLogMeta(meta);
 
         if (process.env.NODE_ENV !== 'test') {
             logger.info(`${config.color}${config.emoji} ${config.tag} [${displayName}]${reset} ${message}`);
         }
 
         const logEntry = {
-            id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            agentId: String(agentId),
+            id: `log-${Date.now()}-${crypto.randomUUID()}`,
+            agentId: agentIdStr,
             agentName: displayName,
             message,
             timestamp: Date.now(),
             type,
-            stage: meta.stage || 'idle',
-            domain: meta.domain || 'system',
-            actionKey: meta.actionKey || 'LOG',
+            stage: normalizedMeta.stage || LOG_STAGES.EXECUTED,
+            domain: normalizedMeta.domain || LOG_DOMAINS.SYSTEM,
+            actionKey: normalizedMeta.actionKey || LOG_ACTIONS.LOG,
         };
 
         this.atcService.state.logs = [...(this.atcService.state.logs || []), logEntry].slice(-(CONSTANTS.LOG_RETENTION || 2000));

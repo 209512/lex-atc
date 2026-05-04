@@ -11,7 +11,7 @@ describe('backend smoke', () => {
     atcService.isReady = true;
     const mod = require('../..');
     const { loadBackendConfig } = require('../../src/config/env');
-    app = mod.buildApp(atcService, loadBackendConfig({ ...process.env, NODE_ENV: 'test', ADMIN_AUTH_DISABLED: 'true' }));
+    app = mod.buildApp(atcService, loadBackendConfig({ ...process.env, NODE_ENV: 'test', ADMIN_AUTH_DISABLED: 'true', ALLOW_INSECURE_ADMIN_AUTH: 'true' }));
   });
 
   afterAll(async () => {

@@ -1,5 +1,6 @@
 const SandboxAdapter = require('./SandboxAdapter');
 const Docker = require('dockerode');
+const { resolveSandboxCommandWithContext } = require('./SandboxCommandRegistry');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -51,8 +52,10 @@ class PooledDockerSandboxAdapter extends SandboxAdapter {
         await this.init();
         const worker = await this._acquireWorker();
         try {
-            const cmd = ['sh', '-lc', `echo ${JSON.stringify(String(task.intent?.text || ''))}`];
-            const res = await this._exec(worker, cmd);
+            const resolved = resolveSandboxCommandWithContext(task, task?.execContext || null);
+            const cmd = [resolved.bin, ...resolved.args];
+            const timeoutMs = Math.min(this.execTimeoutMs, Number(resolved.timeoutMs || this.execTimeoutMs));
+            const res = await this._exec(worker, cmd, timeoutMs);
             return { ok: true, executed: true, mode: 'isolated_container_pool', output: res };
         } catch (error) {
             return { ok: false, executed: false, error: String(error?.message || error) };
@@ -131,7 +134,7 @@ class PooledDockerSandboxAdapter extends SandboxAdapter {
         this.available.push(container);
     }
 
-    async _exec(container, cmd) {
+    async _exec(container, cmd, timeoutMs) {
         const exec = await container.exec({
             Cmd: cmd,
             AttachStdout: true,
@@ -149,7 +152,7 @@ class PooledDockerSandboxAdapter extends SandboxAdapter {
         });
         const waitRes = await Promise.race([
             exec.inspect(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('SANDBOX_EXEC_TIMEOUT')), this.execTimeoutMs))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('SANDBOX_EXEC_TIMEOUT')), timeoutMs || this.execTimeoutMs))
         ]);
         if (waitRes?.ExitCode && waitRes.ExitCode !== 0) {
             throw new Error(`SANDBOX_EXEC_EXIT_${waitRes.ExitCode}${stderr ? `:${stderr}` : ''}`);

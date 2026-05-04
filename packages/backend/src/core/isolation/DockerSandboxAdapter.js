@@ -1,5 +1,6 @@
 const SandboxAdapter = require('./SandboxAdapter');
 const Docker = require('dockerode');
+const { resolveSandboxCommandWithContext } = require('./SandboxCommandRegistry');
 
 class DockerSandboxAdapter extends SandboxAdapter {
     constructor(guard) {
@@ -21,7 +22,9 @@ class DockerSandboxAdapter extends SandboxAdapter {
         let container;
         try {
             await this._ensureImage();
-            const cmd = ['sh', '-lc', `echo ${JSON.stringify(String(task.intent?.text || 'empty'))}`];
+            const resolved = resolveSandboxCommandWithContext(task, task?.execContext || null);
+            const cmd = [resolved.bin, ...resolved.args];
+            const timeoutMs = Math.min(this.execTimeoutMs, Number(resolved.timeoutMs || this.execTimeoutMs));
             
             container = await this.docker.createContainer({
                 Image: this.image,
@@ -53,7 +56,7 @@ class DockerSandboxAdapter extends SandboxAdapter {
 
             const data = await Promise.race([
                 container.wait(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('SANDBOX_EXEC_TIMEOUT')), this.execTimeoutMs))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('SANDBOX_EXEC_TIMEOUT')), timeoutMs))
             ]);
             
             try { await container.remove({ force: true }); } catch (e) {

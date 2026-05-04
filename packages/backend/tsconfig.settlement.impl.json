@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "noResolve": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "lib": ["ES2020"],
+    "types": []
+  },
+  "include": [
+    "src/types/typecheck-shims.d.ts",
+    "src/core/settlement/settlementReducer.types.d.ts",
+    "src/core/settlement/settlementRepo.d.ts",
+    "src/core/settlement/settlementState.d.ts",
+    "src/core/settlement/SettlementEngine.d.ts",
+    "src/core/settlement/settlementChannels.d.ts",
+    "src/core/settlement/settlementSnapshots.d.ts",
+    "src/core/settlement/settlementDisputes.d.ts",
+    "src/core/settlement/settlementMonitoring.d.ts",
+    "src/core/settlement/settlementState.js",
+    "src/core/settlement/settlementRepo.js",
+    "src/core/settlement/stateMachine.js",
+    "src/core/settlement/settlementReducer.js",
+    "src/core/settlement/settlementChannels.js",
+    "src/core/settlement/settlementSnapshots.js",
+    "src/core/settlement/settlementDisputes.js",
+    "src/core/settlement/settlementMonitoring.js",
+    "src/core/settlement/SettlementEngine.js",
+    "src/core/settlement/SolanaSettlementProvider.js"
+  ]
+}

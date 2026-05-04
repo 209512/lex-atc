@@ -17,6 +17,10 @@ const JobQueue = require('../core/queue/JobQueue');
 const logger = require('../utils/logger');
 const CONSTANTS = require('../config/constants');
 const { EVENT_TYPES, LOG_DOMAINS, LOG_STAGES, LOG_ACTIONS } = require('@lex-atc/shared');
+const { toggleGlobalStop } = require('./atc.service.globalStop');
+const { isAgentPaused, getAgentStatus } = require('./atc.service.agentStatus');
+const { commitAgentAcquired, commitAgentReleased } = require('./atc.service.lock');
+const { handleAgentWaiting, handleAgentCollision, handlePriorityCollision } = require('./atc.service.flow');
 
 const db = require('../core/DatabaseManager');
 
@@ -202,17 +206,24 @@ class ATCService extends EventEmitter {
     async cancelTicket(shardId, uuid) { return this.ticketManager.cancelTicket(shardId, uuid); }
     async completeTicketTurn(shardId, uuid) { return this.ticketManager.completeTicketTurn(shardId, uuid); }
 
-    async updateAgentPool(count) { return this.agentManager.updateAgentPool(count); }
+    async updateAgentPool(count) {
+        const target = Number(count);
+        await this.agentManager.updateAgentPool(target);
+        return { success: true, count: target, activeAgentCount: this.agents.size };
+    }
     async startSimulation(count = 2) { await this.updateAgentPool(count); }
     async renameAgent(uuid, newName) { return this.agentManager.renameAgent(uuid, newName); }
-    async pauseAgent(uuid, pause) { return this.agentManager.pauseAgent(uuid, pause); }
+    async pauseAgent(uuid, pause) {
+        await this.agentManager.pauseAgent(uuid, pause);
+        return { success: true, uuid: String(uuid), pause: Boolean(pause) };
+    }
     
     async terminateAgent(uuid) { 
         const result = await this.agentManager.terminateAgent(uuid);
         this.clearAgentLogs(uuid);
         this.state.activeAgentCount = this.agents.size;
         this.emitState();
-        return result;
+        return { success: Boolean(result), uuid: String(uuid) };
     }
 
     async transferLock(uuid) { return this.lockDirector.transferLock(uuid); }
@@ -223,8 +234,8 @@ class ATCService extends EventEmitter {
         return this.isolationEngine.getPublicState();
     }
 
-    finalizeTask(taskId, adminUuid) {
-        return this.isolationEngine.finalize(taskId, adminUuid);
+    finalizeTask(taskId, adminUuid, ctx) {
+        return this.isolationEngine.finalize(taskId, adminUuid, ctx);
     }
 
     rollbackTask(taskId, adminUuid, reason) {
@@ -249,51 +260,15 @@ class ATCService extends EventEmitter {
             if (config.model) agent.model = config.model;
         }
         this.emitState();
+        return { success: true, uuid: String(uuid) };
     }
 
     async toggleGlobalStop(enable) {
-        const next = Boolean(enable);
-
-        if (this.sharedClient && typeof this.sharedClient.getCPSubsystem === 'function') {
-            const cp = this.sharedClient.getCPSubsystem();
-            const lock = await cp.getLock(CONSTANTS.GLOBAL_STOP_LOCK_NAME);
-            if (next) {
-                if (!this._globalStopFence) {
-                    const fence = await lock.tryLock(250);
-                    if (!fence) throw new Error('GLOBAL_STOP_LOCK_ACQUIRE_FAILED');
-                    this._globalStopLock = lock;
-                    this._globalStopFence = fence;
-                }
-            } else {
-                if (this._globalStopLock && this._globalStopFence) {
-                    await this._globalStopLock.unlock(this._globalStopFence).catch(() => {});
-                }
-                this._globalStopLock = null;
-                this._globalStopFence = null;
-            }
-        }
-
-        this.state.globalStop = next;
-        if (next && this.stateManager?.bumpEpoch) {
-            const shardIds = this.getShardIds();
-            for (const shardId of shardIds) {
-                await this.stateManager.bumpEpoch(shardId, 'GLOBAL_STOP', null);
-            }
-        }
-
-        this.addLog('SYSTEM', `Global stop ${next ? 'Enabled' : 'Disabled'}`, 'system', { stage: LOG_STAGES.EXECUTED, domain: LOG_DOMAINS.SYSTEM, actionKey: LOG_ACTIONS.TOGGLE_STOP });
-        this.emitState();
+        return toggleGlobalStop(this, enable);
     }
 
     async isAgentPaused(uuid) {
-        if (!this.sharedClient) return false;
-        try {
-            const map = await this.sharedClient.getMap(CONSTANTS.MAP_AGENT_COMMANDS);
-            const cmd = await map.get(uuid);
-            return cmd && cmd.cmd === CONSTANTS.CMD_PAUSE;
-        } catch (e) { 
-            return false; 
-        }
+        return isAgentPaused(this, uuid);
     }
 
     stop() {
@@ -337,129 +312,11 @@ class ATCService extends EventEmitter {
     }
 
     async getAgentStatus({ includePosition = false } = {}) {
-        if (!this.sharedClient) return [];
-        try {
-            const map = await this.sharedClient.getMap(CONSTANTS.MAP_AGENT_STATUS);
-            const entrySet = await map.entrySet();
-            const statusList = [];
-            const now = Date.now();
-            const isolationTasks = (this.state.isolation?.tasks || []);
-            const pendingByAgent = new Map();
-            for (const t of isolationTasks) {
-                const actor = String(t.actorUuid || '');
-                if (!actor) continue;
-                if (!pendingByAgent.has(actor)) pendingByAgent.set(actor, []);
-                pendingByAgent.get(actor).push(t);
-            }
-
-            const settlementChannels = (this.state.settlement?.channels || []);
-            const settlementByAgent = new Map();
-            for (const ch of settlementChannels) {
-                const channelId = String(ch.channelId || '');
-                const parts = channelId.split(':');
-                if (parts.length >= 2) settlementByAgent.set(parts[1], ch);
-            }
-
-            for (const [uuid, info] of entrySet) {
-                if (this.agents.has(uuid) || (now - info.lastUpdated < 5000)) {
-                    const agentObj = this.agents.get(uuid);
-                    const base = { ...info };
-                    const enriched = {
-                        ...base,
-                        id: base.uuid,
-                        displayName: agentObj ? agentObj.id : (base.displayName || base.id),
-                        priority: (this.state.priorityAgents || []).includes(uuid),
-                        isPaused: await this.isAgentPaused(uuid),
-                    };
-
-                    const iso = pendingByAgent.get(uuid) || [];
-                    const hasPending = iso.some(t => String(t.status) === 'PENDING');
-                    const settlement = settlementByAgent.get(uuid);
-                    const lastStatus = String(settlement?.lastStatus || '');
-                    const hasSnap = settlement && settlement.lastNonce !== undefined && settlement.lastNonce !== null;
-                    let l4Phase = 'SANDBOX';
-                    if (hasPending) l4Phase = 'SANDBOX';
-                    else if (lastStatus === 'FINALIZED') l4Phase = 'FINALIZED';
-                    else if (hasSnap) l4Phase = 'COMMIT';
-                    enriched.l4Phase = l4Phase;
-                    enriched.onchainStatus = lastStatus || null;
-                    enriched.onchainTxid = settlement?.lastTxid || null;
-
-                    if (includePosition) {
-                        statusList.push(enriched);
-                    } else {
-                        const { position: _position, ...rest } = enriched;
-                        statusList.push(rest);
-                    }
-                }
-            }
-            return statusList.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || '', undefined, {numeric: true}));
-        } catch (e) {
-            if (process.env.NODE_ENV !== 'test') {
-                logger.error('Failed to get agent status:', e.message);
-            }
-            return [];
-        }
+        return getAgentStatus(this, { includePosition });
     }
 
     async commitAgentAcquired({ id, fence, latency, shardId, resourceId, epoch, ticket }) {
-        const uuid = String(id);
-        const sid = shardId || this.getShardIdForAgent(uuid);
-        const shard = this.state.shards?.[sid];
-        if (!shard) throw new Error('SHARD_NOT_FOUND');
-
-        const shardEpoch = epoch ?? shard.epoch;
-        const rid = resourceId || shard.resourceId;
-        await this.recordEvent({
-            shardId: sid,
-            shardEpoch,
-            resourceId: rid,
-            fenceToken: fence,
-            action: EVENT_TYPES.LOCK_ACQUIRED,
-            actorUuid: uuid,
-            payload: { latency, ticket: ticket || 0 }
-        });
-
-        if (shard.forcedCandidate?.uuid === uuid) {
-            this.lockDirector.clearTransferTimeoutForCandidate(uuid);
-            this.addLog(uuid, `✨ Success: Received Transferred Lock (${sid})`, 'success', { stage: LOG_STAGES.EXECUTED, domain: LOG_DOMAINS.LOCK, actionKey: LOG_ACTIONS.LOCK_ACQUIRED });
-            this.emit('transfer-success', { id: uuid, shardId: sid });
-            shard.forcedCandidate = null;
-        } else if (this.state.forcedCandidate === uuid) {
-            this.lockDirector.clearTransferTimeoutForCandidate(uuid);
-            this.addLog(uuid, `✨ Success: Received Transferred Lock`, 'success', { stage: LOG_STAGES.EXECUTED, domain: LOG_DOMAINS.LOCK, actionKey: LOG_ACTIONS.LOCK_ACQUIRED });
-            this.emit('transfer-success', { id: uuid });
-            this.state.forcedCandidate = null;
-        }
-
-        if (this.takeoverEscrow?.has(uuid)) {
-            const escrow = this.takeoverEscrow.get(uuid);
-            const victim = this.agents.get(escrow.victim);
-            if (victim) {
-                victim.account.balance += escrow.amount;
-                this.addLog('SYSTEM', `💸 Escrow paid to ${victim.id} (${escrow.amount} SOL)`, 'info', { stage: LOG_STAGES.EXECUTED, domain: LOG_DOMAINS.ECONOMY, actionKey: LOG_ACTIONS.EVICTION_SLASH });
-            }
-            this.takeoverEscrow.delete(uuid);
-        }
-
-        this.addLog(uuid, `🔒 Access Granted (Fence: ${fence})`, 'lock', { stage: LOG_STAGES.EXECUTED, domain: LOG_DOMAINS.LOCK, actionKey: LOG_ACTIONS.LOCK_ACQUIRED });
-
-        shard.holder = uuid;
-        shard.fencingToken = fence;
-        shard.latency = latency;
-        shard.lease = { startsAt: Date.now(), endsAt: Date.now() + (Number(CONSTANTS.LOCK_LEASE_MS) || 5000), durationMs: Number(CONSTANTS.LOCK_LEASE_MS) || 5000 };
-        shard.waitingAgents = (shard.waitingAgents || []).filter(a => String(a) !== uuid);
-
-        const primary = Object.keys(this.state.shards || {})[0] || 'RG-0';
-        if (primary === sid) {
-            this.state.holder = uuid;
-            this.state.fencingToken = fence;
-            this.state.latency = latency;
-            this.state.timestamp = Date.now();
-            this.state.waitingAgents = (this.state.waitingAgents || []).filter(uid => uid !== uuid);
-        }
-        this.emitState();
-        return { ok: true };
+        return commitAgentAcquired(this, { id, fence, latency, shardId, resourceId, epoch, ticket });
     }
 
     handleAgentAcquired(payload) {
@@ -469,37 +326,7 @@ class ATCService extends EventEmitter {
     }
 
     async commitAgentReleased({ id, shardId, resourceId, epoch }) {
-        const uuid = String(id);
-        const sid = shardId || this.getShardIdForAgent(uuid);
-        const shard = this.state.shards?.[sid];
-        if (!shard) throw new Error('SHARD_NOT_FOUND');
-
-        const shardEpoch = epoch ?? shard.epoch;
-        const rid = resourceId || shard.resourceId;
-        await this.recordEvent({
-            shardId: sid,
-            shardEpoch,
-            resourceId: rid,
-            action: EVENT_TYPES.LOCK_RELEASED,
-            actorUuid: uuid,
-        });
-
-        this.addLog(uuid, `🔓 Lock Released on ${sid}`, 'info', { stage: LOG_STAGES.EXECUTED, domain: LOG_DOMAINS.LOCK, actionKey: LOG_ACTIONS.LOCK_RELEASED });
-
-        if (shard.holder === uuid) {
-            shard.holder = null;
-            shard.fencingToken = null;
-            shard.lease = null;
-        }
-
-        const primary = Object.keys(this.state.shards || {})[0] || 'RG-0';
-        if (primary === sid && this.state.holder === uuid) {
-            this.state.holder = null;
-            this.state.fencingToken = null;
-        }
-
-        this.emitState();
-        return { ok: true };
+        return commitAgentReleased(this, { id, shardId, resourceId, epoch });
     }
 
     async handleAgentReleased(payload) {
@@ -511,44 +338,15 @@ class ATCService extends EventEmitter {
     }
 
     handleAgentCollision() {
-        this.state.collisionCount++;
-        this.addLog('NETWORK', `⚠️ Collision detected!`, 'warn', { stage: LOG_STAGES.FAILED, domain: LOG_DOMAINS.LOCK, actionKey: LOG_ACTIONS.LOCK_ACQUIRED });
-        this.emitState();
+        return handleAgentCollision(this);
     }
 
     handlePriorityCollision() {
-        this.state.collisionCount++;
-        this.state.priorityCollisionTrigger = Date.now();
-        this.addLog('POLICY', `🚨 Priority Contention`, 'policy', { stage: LOG_STAGES.FAILED, domain: LOG_DOMAINS.LOCK, actionKey: LOG_ACTIONS.LOCK_ACQUIRED });
-        this.emitState();
+        return handlePriorityCollision(this);
     }
 
     handleAgentWaiting({ id }) {
-        const uuid = id;
-        const currentHolder = this.state.holder;
-        const pList = this.state.priorityAgents || [];
-
-        if (currentHolder && currentHolder !== uuid) {
-            const holderAgent = this.agents.get(currentHolder);
-            const holderName = holderAgent ? holderAgent.id : (currentHolder === 'Human (Admin)' ? 'ADMIN' : currentHolder);
-
-            if (pList.includes(currentHolder) && !pList.includes(uuid)) {
-                this.addLog(uuid, `🚫 BLOCKED_BY: [${holderName}]`, 'policy', { stage: LOG_STAGES.FAILED, domain: LOG_DOMAINS.LOCK, actionKey: LOG_ACTIONS.LOCK_BLOCKED });
-                this.handlePriorityCollision();
-            } 
-            else {
-                if (!(this.state.waitingAgents || []).includes(uuid)) {
-                   this.addLog(uuid, `⚔️ WAIT_FOR: [${holderName}]`, 'warn', { stage: LOG_STAGES.REQUEST, domain: LOG_DOMAINS.LOCK, actionKey: LOG_ACTIONS.LOCK_WAIT });
-                }
-            }
-        }
-
-        if (!(this.state.waitingAgents || []).includes(uuid)) {
-            this.addLog(uuid, `⏳ Waiting in queue...`, 'info', { stage: LOG_STAGES.REQUEST, domain: LOG_DOMAINS.LOCK, actionKey: LOG_ACTIONS.LOCK_WAIT });
-            if (!this.state.waitingAgents) this.state.waitingAgents = [];
-            this.state.waitingAgents.push(uuid);
-            this.emitState();
-        }
+        return handleAgentWaiting(this, { id });
     }
 
     emitState() {
@@ -556,8 +354,4 @@ class ATCService extends EventEmitter {
     }
 }
 
-const key = '__LEX_ATC_ATC_INSTANCES__';
-if (!globalThis[key]) globalThis[key] = new Set();
-const inst = new ATCService();
-globalThis[key].add(inst);
-module.exports = inst;
+module.exports = new ATCService();

@@ -45,6 +45,7 @@ const loadBackendConfig = (env = process.env) => {
     const nodeEnv = String(env.NODE_ENV || 'development');
     const isProd = nodeEnv === 'production';
     const isTest = nodeEnv === 'test';
+    const isDevLike = nodeEnv === 'development' || nodeEnv === 'test';
 
     if (isProd) {
         if (Object.prototype.hasOwnProperty.call(env, 'ADMIN_AUTH_DISABLED')) {
@@ -59,6 +60,22 @@ const loadBackendConfig = (env = process.env) => {
         }
         if (Object.prototype.hasOwnProperty.call(env, 'ALLOW_DEV_SEED_FALLBACK')) {
             const err = new Error('Forbidden env in production: ALLOW_DEV_SEED_FALLBACK');
+            err.code = 'ENV_FORBIDDEN';
+            throw err;
+        }
+    } else if (!isDevLike) {
+        if (Object.prototype.hasOwnProperty.call(env, 'ADMIN_AUTH_DISABLED')) {
+            const err = new Error(`Forbidden env outside development/test: ADMIN_AUTH_DISABLED (NODE_ENV=${nodeEnv})`);
+            err.code = 'ENV_FORBIDDEN';
+            throw err;
+        }
+        if (Object.prototype.hasOwnProperty.call(env, 'ALLOW_DEV_AUTH_FALLBACK')) {
+            const err = new Error(`Forbidden env outside development/test: ALLOW_DEV_AUTH_FALLBACK (NODE_ENV=${nodeEnv})`);
+            err.code = 'ENV_FORBIDDEN';
+            throw err;
+        }
+        if (Object.prototype.hasOwnProperty.call(env, 'ALLOW_DEV_SEED_FALLBACK')) {
+            const err = new Error(`Forbidden env outside development/test: ALLOW_DEV_SEED_FALLBACK (NODE_ENV=${nodeEnv})`);
             err.code = 'ENV_FORBIDDEN';
             throw err;
         }
@@ -130,7 +147,7 @@ const loadBackendConfig = (env = process.env) => {
             },
         },
         adminAuth: {
-            disabled: parseBool(env.ADMIN_AUTH_DISABLED, false),
+            disabled: !isProd && parseBool(env.ADMIN_AUTH_DISABLED, false) && parseBool(env.ALLOW_INSECURE_ADMIN_AUTH, false),
             tokenSecret: env.ADMIN_TOKEN_SECRET || null,
             multiSigThreshold: parseIntStrict(env.ADMIN_MULTI_SIG_THRESHOLD, 2),
         },
