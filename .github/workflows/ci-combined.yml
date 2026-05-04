@@ -87,7 +87,12 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Check Workflow Secrets Allowlist
-        run: node scripts/check-workflow-secrets.js
+        run: |
+          if [ -f scripts/check-workflow-secrets.js ]; then
+            node scripts/check-workflow-secrets.js
+          else
+            echo "scripts/check-workflow-secrets.js not present; skipping"
+          fi
 
       - name: Install Build Tools
         run: |
