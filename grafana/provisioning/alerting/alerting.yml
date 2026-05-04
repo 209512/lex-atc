@@ -89,3 +89,84 @@ groups:
           description: "The global lock on shard {{ $labels.shard_id }} has been held by {{ $labels.holder }} for more than {{ $values.A.Value | printf \"%.0f\" }} ms.\n\nContext:\n- Balance: {{ $labels.balance }} SOL\n- Total Tasks: {{ $labels.total_tasks }}\n\nThis could indicate a deadlock or monopolization."
         labels:
           severity: 'warning'
+
+      - uid: 'settlement_contract_failure'
+        title: 'Settlement Contract Failure (Missing Metadata)'
+        condition: 'C'
+        data:
+          - refId: 'A'
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: 'Prometheus'
+            model:
+              expr: 'increase(lex_atc_settlement_contract_failures_total{reason="SETTLEMENT_CHAIN_METADATA_MISSING"}[1m])'
+              refId: 'A'
+          - refId: 'C'
+            datasourceUid: '__expr__'
+            model:
+              type: 'math'
+              expression: '$A > 0'
+              refId: 'C'
+        noDataState: 'OK'
+        execErrState: 'Alerting'
+        for: 10s
+        annotations:
+          summary: 'Settlement contract failure detected.'
+          description: "Settlement op failed contract checks (missing txid/commitment/status).\n\nContext:\n- op: {{ $labels.op }}\n- reason: {{ $labels.reason }}\n- increases(1m): {{ $values.A.Value | printf \"%.0f\" }}\n\nAction: Inspect backend logs/events and enforce correct chain metadata propagation."
+        labels:
+          severity: 'critical'
+
+      - uid: 'sandbox_policy_denial_critical'
+        title: 'Sandbox Policy Denial (Misconfig / Unexpected)'
+        condition: 'C'
+        data:
+          - refId: 'A'
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: 'Prometheus'
+            model:
+              expr: 'increase(lex_atc_sandbox_policy_denials_total{reason!~"SANDBOX_FORBIDDEN|SANDBOX_NOT_FINALIZED"}[1m])'
+              refId: 'A'
+          - refId: 'C'
+            datasourceUid: '__expr__'
+            model:
+              type: 'math'
+              expression: '$A > 0'
+              refId: 'C'
+        noDataState: 'OK'
+        execErrState: 'Alerting'
+        for: 10s
+        annotations:
+          summary: 'Sandbox policy denial indicates potential misconfiguration.'
+          description: "Sandbox denial occurred for non-benign reasons.\n\nContext:\n- command_key: {{ $labels.command_key }}\n- reason: {{ $labels.reason }}\n- increases(1m): {{ $values.A.Value | printf \"%.0f\" }}\n\nAction: check SANDBOX_ALLOWED_BINARIES / SANDBOX_COMMAND_POLICY_JSON and rollout correctness."
+        labels:
+          severity: 'critical'
+
+      - uid: 'sandbox_policy_denial_forbidden_spike'
+        title: 'Sandbox Policy Denial (Forbidden Spike)'
+        condition: 'C'
+        data:
+          - refId: 'A'
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: 'Prometheus'
+            model:
+              expr: 'increase(lex_atc_sandbox_policy_denials_total{reason="SANDBOX_FORBIDDEN"}[${SANDBOX_FORBIDDEN_SPIKE_WINDOW:-5m}])'
+              refId: 'A'
+          - refId: 'C'
+            datasourceUid: '__expr__'
+            model:
+              type: 'math'
+              expression: '$A > ${SANDBOX_FORBIDDEN_SPIKE_THRESHOLD:-20}'
+              refId: 'C'
+        noDataState: 'OK'
+        execErrState: 'Alerting'
+        for: 30s
+        annotations:
+          summary: 'Sandbox forbidden denials are spiking.'
+          description: "SANDBOX_FORBIDDEN usually means a legitimate authorization block, but a spike often indicates role propagation/config regression.\n\nContext:\n- increases(window): {{ $values.A.Value | printf \"%.0f\" }}\n- window: ${SANDBOX_FORBIDDEN_SPIKE_WINDOW:-5m}\n- threshold: ${SANDBOX_FORBIDDEN_SPIKE_THRESHOLD:-20}\n\nAction: verify admin roles in auth/session and governance executor role propagation."
+        labels:
+          severity: 'warning'
