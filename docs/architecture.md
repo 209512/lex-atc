@@ -92,8 +92,8 @@ graph TD
 
     subgraph L3["L3 Settlement · Runtime + Anchor"]
         SET["Settlement Engine (on-chain optional)"]
-        ML[AI Watcher API (optional)]
-        CH[Channel Snapshots / Signatures (optional)]
+        ML["AI Watcher API (optional)"]
+        CH["Channel Snapshots / Signatures (optional)"]
     end
 
     Store <-->|SSE Stream| API
